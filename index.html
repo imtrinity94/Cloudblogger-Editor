@@ -35,7 +35,7 @@
         }
         #container {
             /* width: 500px; */
-            height: 450px;
+            height: 300px;
             border: 1px solid #324f61;
             margin-bottom: 10px;
             background-color: #1b2a32;
@@ -56,30 +56,46 @@
         }
 
         #run-button {
-            margin: 0;
-            padding: 4px 12px;
-            background-color: #49afd9;
-            color: #0f171c;
-            border: none;
             cursor: pointer;
-            /* border-radius: 3px; */
-            /* font-weight: 500; */
-            font-family: inherit;
-            font-size: 16px;
-            line-height: 16px;
             display: inline-flex;
+            gap: var(--cds-global-space-5);
             align-items: center;
-            gap: 4px;
-            transition: background-color 0.2s ease;
-            width: auto;
-            /* min-width: 80px; */
+            place-content: center;
+            border: var(--clr-btn-border-width) solid;
+            border-radius: var(--clr-btn-border-radius);
+            min-width: var(--cds-global-space-14);
+            max-width: calc(360 * (1rem / var(--cds-global-base)));
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            text-align: center;
+            text-decoration: none;
+            vertical-align: middle;
+            border-color: var(--clr-btn-default-border-color);
+            background-color: var(--clr-btn-default-bg-color);
+            color: var(--clr-btn-default-color);
+            font-weight: var(--cds-alias-typography-font-weight-semibold);
+            font-size: var(--cds-alias-typography-font-size-2);
+            line-height: var(--cds-global-space-7);
+            letter-spacing: var(--cds-global-space-1);
+            text-transform: uppercase;
+            height: var(--clr-btn-appearance-form-height);
+            padding: var(--clr-btn-appearance-form-padding);
         }
 
         #run-button:hover {
-            background-color: #60b6dd;
+            background-color: #0079ad;
+            color: #ffffff;
         }
 
         #run-button:active {
+            background-color: #0077b8;
+        }
+        #theme-toggle:hover {
+            background-color: #0079ad !important;
+            color: #ffffff !important;
+        }
+        #theme-toggle:active {
             background-color: #0077b8;
         }
         .timestamp {
@@ -204,6 +220,20 @@
         .property-value {
             color: #e9ecef;
         }
+
+        /* --- Consistent box-sizing and overflow fix for all themes --- */
+        html, body, .main-container, .editor-section, #container {
+            box-sizing: border-box !important;
+        }
+        .editor-section {
+            overflow: hidden !important;
+        }
+        #container {
+            overflow: hidden !important;
+            max-width: 100%;
+            max-height: 100%;
+        }
+        /* --- End fix --- */
     </style>
     <style id="clarity-ui-light-override" disabled>
         body[cds-theme="light"] html,
@@ -258,7 +288,32 @@
     <div class="header-bar">
         <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Cpath fill='%2349AFD9' d='M18 0C8.06 0 0 8.06 0 18s8.06 18 18 18 18-8.06 18-18S27.94 0 18 0zm0 33c-8.271 0-15-6.729-15-15S9.729 3 18 3s15 6.729 15 15-6.729 15-15 15z'/%3E%3C/svg%3E" class="logo" alt="Logo">
         Cloudblogger Editor
-        <button id="theme-toggle" style="margin-left:auto;background:#324f61;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:14px;">🌙 Dark Mode</button>
+        <button id="theme-toggle" style="margin-left:auto;
+                                        cursor: pointer;
+                                        display: inline-flex;
+                                        gap: var(--cds-global-space-5);
+                                        align-items: center;
+                                        place-content: center;
+                                        border: var(--clr-btn-border-width) solid;
+                                        border-radius: var(--clr-btn-border-radius);
+                                        min-width: var(--cds-global-space-14);
+                                        max-width: calc(360 * (1rem / var(--cds-global-base)));
+                                        white-space: nowrap;
+                                        text-overflow: ellipsis;
+                                        overflow: hidden;
+                                        text-align: center;
+                                        text-decoration: none;
+                                        vertical-align: middle;
+                                        border-color: var(--clr-btn-default-border-color);
+                                        background-color: var(--clr-btn-default-bg-color);
+                                        color: var(--clr-btn-default-color);
+                                        font-weight: var(--cds-alias-typography-font-weight-semibold);
+                                        font-size: var(--cds-alias-typography-font-size-2);
+                                        line-height: var(--cds-global-space-7);
+                                        letter-spacing: var(--cds-global-space-1);
+                                        text-transform: uppercase;
+                                        height: var(--clr-btn-appearance-form-height);
+                                        padding: var(--clr-btn-appearance-form-padding);">🌙 Dark Mode</button>
     </div>
     <div class="main-container">
         <div class="clr-vertical-nav has-nav-groups">
@@ -269,27 +324,14 @@
                     </button>
                 </div>
                 <div class="nav-group-children">
-                    <a class="nav-link">
-                        <span class="nav-text">System</span>
-                    </a>
-                    <a class="nav-link">
-                        <span class="nav-text">ByteBuffer</span>
-                    </a>
-                    <a class="nav-link">
-                        <span class="nav-text">MimeAttachment</span>
-                    </a>
-                    <a class="nav-link">
-                        <span class="nav-text">File</span>
-                    </a>
-                    <a class="nav-link">
-                        <span class="nav-text">Command</span>
-                    </a>
-                    <a class="nav-link">
-                        <span class="nav-text">URL</span>
-                    </a>
-                    <a class="nav-link">
-                        <span class="nav-text">ZipWriter</span>
-                    </a>
+                    <a class="nav-link"><span class="nav-text">System</span></a>
+                    <a class="nav-link"><span class="nav-text">ByteBuffer</span></a>
+                    <a class="nav-link"><span class="nav-text">MimeAttachment</span></a>
+                    <a class="nav-link"><span class="nav-text">File</span></a>
+                    <a class="nav-link"><span class="nav-text">Command</span></a>
+                    <a class="nav-link"><span class="nav-text">URL</span></a>
+                    <a class="nav-link"><span class="nav-text">ZipWriter</span></a>
+                    <a class="nav-link"><span class="nav-text">Properties</span></a>
                 </div>
             </div>
         </div>
@@ -500,6 +542,32 @@
                 }
             }
 
+            // Properties class (vRO key-value map)
+            function Properties() {
+                this._data = {};
+            }
+            Properties.prototype.put = function(key, value) {
+                this._data[key] = value;
+            };
+            Properties.prototype.get = function(key) {
+                return this._data.hasOwnProperty(key) ? this._data[key] : null;
+            };
+            Properties.prototype.keys = function() {
+                return Object.keys(this._data);
+            };
+            Properties.prototype.remove = function(key) {
+                delete this._data[key];
+            };
+            Properties.prototype.clear = function() {
+                this._data = {};
+            };
+            Properties.prototype.toString = function() {
+                return JSON.stringify(this._data);
+            };
+
+            // Make new classes globally available
+            window.Properties = Properties;
+
             // Make classes globally available
             window.ByteBuffer = ByteBuffer;
             window.MimeAttachment = MimeAttachment;
@@ -507,6 +575,40 @@
             window.Command = Command;
             window.URL = URL;
             window.ZipWriter = ZipWriter;
+
+            // --- BEGIN: Sidebar class click handler ---
+            // Mapping of class names to sample code
+            var classSamples = {
+                'System':
+`// System class sample\nSystem.log('Hello from System!');\nSystem.debug('Debug message');\nSystem.warn('Warning message');\nSystem.error('Error message');`,
+                'ByteBuffer':
+`// ByteBuffer sample\nvar buffer = new ByteBuffer([65, 66, 67]); // A, B, C\nSystem.log('Buffer length: ' + buffer.length());\nSystem.log('Buffer bytes: ' + buffer.getBytes());`,
+                'MimeAttachment':
+`// MimeAttachment sample\nvar attachment = new MimeAttachment('file.txt', 'Sample content', 'text/plain');\nSystem.log('Attachment name: ' + attachment.getName());\nSystem.log('Attachment mime type: ' + attachment.getMimeType());`,
+                'File':
+`// File class sample\nvar file = new File('/tmp/test.txt');\nfile.write('Hello File!');\nSystem.log('File exists: ' + file.exists());\nSystem.log('File content: ' + file.read());`,
+                'Command':
+`// Command class sample\nvar cmd = new Command('echo Hello');\ncmd.execute();\nSystem.log('Command result: ' + cmd.result());`,
+                'URL':
+`// URL class sample\nvar url = new URL('https://example.com');\nvar content = url.getContent();\nSystem.log('URL content length: ' + content.length());`,
+                'ZipWriter':
+`// ZipWriter sample\nvar zip = new ZipWriter();\nzip.write('file1.txt', 'Content 1');\nzip.write('file2.txt', 'Content 2');\nzip.close();`,
+                'Properties':
+`// Properties class sample\nvar props = new Properties();\nprops.put('key1', 'value1');\nprops.put('key2', 'value2');\nSystem.log('key1: ' + props.get('key1'));\nSystem.log('All keys: ' + props.keys());\nprops.remove('key1');\nSystem.log('After remove: ' + props.toString());`
+            };
+            // Attach click listeners to sidebar class links
+            var navLinks = document.querySelectorAll('.nav-link .nav-text');
+            navLinks.forEach(function(link) {
+                link.parentElement.addEventListener('click', function(e) {
+                    var className = link.textContent.trim();
+                    if (classSamples[className]) {
+                        editor.setValue(classSamples[className]);
+                    } else {
+                        editor.setValue('// No sample available for ' + className);
+                    }
+                });
+            });
+            // --- END: Sidebar class click handler ---
 
             // Create single editor instance with combined example code
             editor = monaco.editor.create(document.getElementById('container'), {
@@ -587,22 +689,55 @@ System.log("URL content length: " + content.length());`,
                 originalConsoleLog.apply(console, args); // Ensure logs also appear in the browser console
             }
 
-            // Function to check for ES6+ syntax
-            function checkForES6Syntax(code) {
-                const es6Features = [
-                    { pattern: /\blet\b/, message: "'let' declaration is not supported. Use 'var' instead." },
-                    { pattern: /=>\s*{?/, message: "Arrow functions are not supported. Use regular function declarations instead." },
-                    { pattern: /\[\.{3}/, message: "Spread operator is not supported." },
-                    { pattern: /`[^`]*`/, message: "Template literals are not supported. Use string concatenation instead." },
-                    { pattern: /class\s+\w+/, message: "Class syntax is not supported. Use constructor functions instead." },
-                    { pattern: /\bimport\b|\bexport\b/, message: "ES6 modules (import/export) are not supported." },
-                    { pattern: /async\s+function|\bawait\b/, message: "Async/await is not supported." }
+            // Function to check for unsupported syntax based on Rhino 1.7R4 (ES5.1)
+            function checkForUnsupportedSyntax(code) {
+                const unsupportedFeatures = [
+                    // ES6+ keywords and syntax (allow 'const' for ES5.1 basic support)
+                    { pattern: /\blet\b/, message: "'let' is not supported. Use 'var' or 'const' instead (Rhino 1.7R4/ES5.1)." },
+                    // { pattern: /\bconst\b/, message: "'const' is not supported. Use 'var' instead (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /=>\s*[{(]?/, message: "Arrow functions are not supported (Rhino 1.7R4/ES5.1). Use function expressions." },
+                    { pattern: /(^|[^\w])class\s+\w+/, message: "Class syntax is not supported (Rhino 1.7R4/ES5.1). Use constructor functions.", skipInComment: true },
+                    { pattern: /`[^`]*`/, message: "Template literals are not supported (Rhino 1.7R4/ES5.1). Use string concatenation." },
+                    { pattern: /\.\.\./, message: "Spread/rest operator is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bimport\b|\bexport\b/, message: "ES6 modules (import/export) are not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /async\s+function|\bawait\b/, message: "Async/await is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /function\s*\*\s*\w*/, message: "Generators are not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /Object\.assign\s*\(/, message: "Object.assign is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bPromise\b/, message: "Promises are not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /for\s*each\s*\(/, message: "'for each (...)' is deprecated and no longer supported in vRO or standard JavaScript. Please use 'for (var i in ...)' or 'for (var i = 0; i < arr.length; i++)' instead." },
+                    { pattern: /for\s*\(\s*\w+\s+of\s+/, message: "'for...of' loops are not supported (Rhino 1.7R4/ES5.1). Use 'for...in' or classic for loops." },
+                    { pattern: /\bSymbol\b/, message: "Symbol is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bMap\b|\bSet\b|\bWeakMap\b|\bWeakSet\b/, message: "Map/Set/WeakMap/WeakSet are not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bReflect\b/, message: "Reflect is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bProxy\b/, message: "Proxy is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bBigInt\b/, message: "BigInt is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bArray\.from\b|\bArray\.of\b/, message: "Array.from/Array.of are not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bObject\.entries\b|\bObject\.values\b/, message: "Object.entries/Object.values are not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bString\.includes\b|\.includes\s*\(/, message: "String.prototype.includes is not supported (Rhino 1.7R4/ES5.1). Use indexOf instead." },
+                    { pattern: /\bArray\.find\b|\.find\s*\(/, message: "Array.prototype.find is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bArray\.findIndex\b|\.findIndex\s*\(/, message: "Array.prototype.findIndex is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bObject\.getOwnPropertySymbols\b/, message: "Object.getOwnPropertySymbols is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bObject\.is\b/, message: "Object.is is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bNumber\.isNaN\b/, message: "Number.isNaN is not supported (Rhino 1.7R4/ES5.1). Use isNaN instead." },
+                    { pattern: /\bNumber\.isFinite\b/, message: "Number.isFinite is not supported (Rhino 1.7R4/ES5.1). Use isFinite instead." },
+                    { pattern: /\bObject\.setPrototypeOf\b/, message: "Object.setPrototypeOf is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\bObject\.getPrototypeOf\b/, message: "Object.getPrototypeOf is not supported (Rhino 1.7R4/ES5.1)." },
+                    // Destructuring
+                    { pattern: /\{\s*\w+\s*\}/, message: "Object destructuring is not supported (Rhino 1.7R4/ES5.1)." },
+                    { pattern: /\[\s*\w+\s*\]/, message: "Array destructuring is not supported (Rhino 1.7R4/ES5.1)." },
                 ];
-
                 const errors = [];
-                es6Features.forEach(feature => {
-                    if (feature.pattern.test(code)) {
-                        errors.push(feature.message);
+                // Remove comments before checking for class keyword
+                var codeNoComments = code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+                unsupportedFeatures.forEach(feature => {
+                    if (feature.pattern.toString().indexOf('class') !== -1) {
+                        if (feature.pattern.test(codeNoComments)) {
+                            errors.push(feature.message);
+                        }
+                    } else {
+                        if (feature.pattern.test(code)) {
+                            errors.push(feature.message);
+                        }
                     }
                 });
                 return errors;
@@ -613,20 +748,20 @@ System.log("URL content length: " + content.length());`,
                 outputDiv.innerHTML = ''; // Clear previous output
                 const code = editor.getValue();
 
-                // First check for ES6 syntax
-                const es6Errors = checkForES6Syntax(code);
-                if (es6Errors.length > 0) {
+                // First check for unsupported syntax
+                const syntaxErrors = checkForUnsupportedSyntax(code);
+                if (syntaxErrors.length > 0) {
                     const timestamp = getTimestamp();
-                    outputDiv.innerHTML += `<span class="timestamp">${timestamp}</span><span class="error-message">vRO ES5.1 Compatibility Errors:</span><br>`;
-                    es6Errors.forEach(error => {
+                    outputDiv.innerHTML += `<span class="timestamp">${timestamp}</span><span class="error-message">vRO Rhino 1.7R4 Compatibility Errors:</span><br>`;
+                    syntaxErrors.forEach(error => {
                         outputDiv.innerHTML += `<span class="timestamp"></span><span class="error-message">- ${error}</span><br>`;
                     });
-                    outputDiv.innerHTML += `<span class="timestamp"></span><span class="error-message">Please modify your code to use ES5.1 compatible syntax.</span><br>`;
+                    outputDiv.innerHTML += `<span class="timestamp"></span><span class="error-message">Please modify your code to use only features supported by Rhino 1.7R4 (ES5.1).</span><br>`;
                     return;
                 }
 
                 try {
-                    // Execute the code if no ES6 syntax is found
+                    // Execute the code if no unsupported syntax is found
                     eval(code);
                 } catch (error) {
                     const timestamp = getTimestamp();
