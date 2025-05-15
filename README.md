@@ -51,6 +51,7 @@ npx serve
 - **No infrastructure connectivity:** The tool cannot connect to external systems, APIs, or infrastructure (e.g., vCenter, REST endpoints, databases).
 - **No support for complex or non-standard vRO code:** Custom vRO scripting features, non-standard JavaScript extensions, and advanced vRO workflow constructs are not supported.
 - **No persistence:** Data and files are not saved between sessions.
+- **No Polyglot Support:** Can't execute Polyglot Runtime code
 
 ## License
 This project is provided for educational and prototyping purposes. No official affiliation with VMware or Aria Automation Orchestrator.
