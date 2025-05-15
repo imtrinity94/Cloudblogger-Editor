@@ -1,4 +1,6 @@
 # Cloudblogger Editor (vRO Scripting Emulator)
+<img width="957" alt="image" src="https://github.com/user-attachments/assets/fd757db2-eccc-439c-87cc-18168d096822" />
+
 
 ## Overview
 Cloudblogger Editor is a web-based code editor that emulates the VMware Aria Automation Orchestrator (vRO) scripting environment. It is designed for learning, testing, and prototyping vRO-compatible JavaScript code in a modern browser, with a focus on ES5.1 (Rhino 1.7R4) compatibility.
