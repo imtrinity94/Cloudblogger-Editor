@@ -280,6 +280,7 @@
         }
         /* Add more overrides as needed for other elements */
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
 </head>
 <body cds-theme="dark">
     <div style="background:#49afd9;color:#0f171c;padding:10px 24px;font-size:15px;font-weight:500;text-align:center;letter-spacing:0.01em;">
@@ -332,6 +333,13 @@
                     <a class="nav-link"><span class="nav-text">URL</span></a>
                     <a class="nav-link"><span class="nav-text">ZipWriter</span></a>
                     <a class="nav-link"><span class="nav-text">Properties</span></a>
+                    <a class="nav-link"><span class="nav-text">Lodash (_)</span></a>
+                    <a class="nav-link"><span class="nav-text">Date</span></a>
+                    <a class="nav-link"><span class="nav-text">EmailMessage</span></a>
+                    <a class="nav-link"><span class="nav-text">XML</span></a>
+                    <a class="nav-link"><span class="nav-text">SecureString</span></a>
+                    <a class="nav-link"><span class="nav-text">RegEx</span></a>
+                    <a class="nav-link"><span class="nav-text">RESTHost</span></a>
                 </div>
             </div>
         </div>
@@ -576,6 +584,127 @@
             window.URL = URL;
             window.ZipWriter = ZipWriter;
 
+            // --- BEGIN: EmailMessage class (vRO-like stub) ---
+            function EmailMessage() {
+                this.subject = '';
+                this.body = '';
+                this.fromAddress = '';
+                this.toAddresses = [];
+                this.ccAddresses = [];
+                this.bccAddresses = [];
+                this.attachments = [];
+            }
+            EmailMessage.prototype.setSubject = function(subject) {
+                this.subject = subject;
+            };
+            EmailMessage.prototype.setBody = function(body) {
+                this.body = body;
+            };
+            EmailMessage.prototype.setFromAddress = function(addr) {
+                this.fromAddress = addr;
+            };
+            EmailMessage.prototype.addToAddress = function(addr) {
+                this.toAddresses.push(addr);
+            };
+            EmailMessage.prototype.addCcAddress = function(addr) {
+                this.ccAddresses.push(addr);
+            };
+            EmailMessage.prototype.addBccAddress = function(addr) {
+                this.bccAddresses.push(addr);
+            };
+            EmailMessage.prototype.addMimeAttachment = function(attachment) {
+                this.attachments.push(attachment);
+            };
+            EmailMessage.prototype.send = function() {
+                System.log('Simulated sending email:');
+                System.log('  From: ' + this.fromAddress);
+                System.log('  To: ' + this.toAddresses.join(', '));
+                System.log('  CC: ' + this.ccAddresses.join(', '));
+                System.log('  BCC: ' + this.bccAddresses.join(', '));
+                System.log('  Subject: ' + this.subject);
+                System.log('  Body: ' + this.body);
+                System.log('  Attachments: ' + this.attachments.length);
+                return true;
+            };
+            window.EmailMessage = EmailMessage;
+            // --- END: EmailMessage class ---
+
+            // --- BEGIN: SecureString class (vRO-like stub) ---
+            function SecureString(str) {
+                this._value = String(str || '');
+            }
+            SecureString.prototype.getPlainText = function() {
+                return this._value;
+            };
+            SecureString.prototype.toString = function() {
+                return '********';
+            };
+            window.SecureString = SecureString;
+            // --- END: SecureString class ---
+
+            // --- BEGIN: RegEx class (vRO-like stub) ---
+            function RegEx(pattern, flags) {
+                this._pattern = pattern;
+                this._flags = flags || '';
+                this._re = new RegExp(pattern, this._flags);
+            }
+            RegEx.prototype.match = function(str) {
+                return str.match(this._re);
+            };
+            RegEx.prototype.replace = function(str, replacement) {
+                return str.replace(this._re, replacement);
+            };
+            RegEx.prototype.test = function(str) {
+                return this._re.test(str);
+            };
+            window.RegEx = RegEx;
+            // --- END: RegEx class ---
+
+            // --- BEGIN: RESTHost and RESTResponse classes (vRO-like, real HTTP) ---
+            function RESTHost(baseUrl) {
+                this.baseUrl = baseUrl;
+            }
+            RESTHost.prototype.createRequest = function(method, path, content, headers) {
+                return {
+                    method: method,
+                    url: this.baseUrl.replace(/\/$/, '') + path,
+                    content: content || null,
+                    headers: headers || {}
+                };
+            };
+            RESTHost.prototype.executeRequest = function(request, callback) {
+                var opts = {
+                    method: request.method,
+                    headers: request.headers || {}
+                };
+                if (request.content) {
+                    opts.body = request.content;
+                }
+                fetch(request.url, opts)
+                    .then(function(response) {
+                        return response.text().then(function(text) {
+                            var restResponse = new RESTResponse(response.status, text, response.headers);
+                            if (callback) {
+                                callback(restResponse);
+                            } else {
+                                System.log('Status: ' + restResponse.statusCode);
+                                System.log('Content: ' + restResponse.contentAsString);
+                            }
+                        });
+                    })
+                    .catch(function(err) {
+                        System.error('RESTHost error: ' + err);
+                    });
+            };
+            function RESTResponse(statusCode, contentAsString, headers) {
+                this.statusCode = statusCode;
+                this.contentAsString = contentAsString;
+                this.headers = headers;
+            }
+            window.RESTHost = RESTHost;
+            window.RESTResponse = RESTResponse;
+            // --- END: RESTHost and RESTResponse classes ---
+
             // --- BEGIN: Sidebar class click handler ---
             // Mapping of class names to sample code
             var classSamples = {
@@ -594,7 +723,21 @@
                 'ZipWriter':
 `// ZipWriter sample\nvar zip = new ZipWriter();\nzip.write('file1.txt', 'Content 1');\nzip.write('file2.txt', 'Content 2');\nzip.close();`,
                 'Properties':
-`// Properties class sample\nvar props = new Properties();\nprops.put('key1', 'value1');\nprops.put('key2', 'value2');\nSystem.log('key1: ' + props.get('key1'));\nSystem.log('All keys: ' + props.keys());\nprops.remove('key1');\nSystem.log('After remove: ' + props.toString());`
+`// Properties class sample\nvar props = new Properties();\nprops.put('key1', 'value1');\nprops.put('key2', 'value2');\nSystem.log('key1: ' + props.get('key1'));\nSystem.log('All keys: ' + props.keys());\nprops.remove('key1');\nSystem.log('After remove: ' + props.toString());`,
+                'Lodash (_)':
+`// Lodash sample\nvar arr = [1, 2, 2, 3, 4, 4, 5];\nvar unique = _.uniq(arr);\n\nvar users = [\n  { name: 'Alice', age: 30 },\n  { name: 'Bob', age: 25 }\n];\nvar sorted = _.sortBy(users, 'age');\nSystem.log('Sorted users: ' + JSON.stringify(sorted));`,
+                'Date':
+`// Date sample\nvar now = new Date();\nSystem.log('Current date/time: ' + now.toUTCString());\nSystem.log('Year: ' + now.getUTCFullYear());`,
+                'EmailMessage':
+`// EmailMessage sample\nvar email = new EmailMessage();\nemail.setFromAddress('sender@example.com');\nemail.addToAddress('recipient@example.com');\nemail.setSubject('Test Email');\nemail.setBody('This is a test email from vRO-like editor.');\nvar att = new MimeAttachment('test.txt', 'Hello World', 'text/plain');\nemail.addMimeAttachment(att);\nemail.send();`,
+                'XML':
+`// XML (E4X-like stub) sample\nvar xml = new XML('<root><item>Value</item></root>');\nSystem.log('XML toString: ' + xml.toString());\nSystem.log('XML root name: ' + xml.name());\nSystem.log('XML first child: ' + xml.child(0));`,
+                'SecureString':
+`// SecureString sample\nvar secret = new SecureString('myPassword123');\nSystem.log('SecureString toString: ' + secret.toString());\nSystem.log('Plain text: ' + secret.getPlainText());`,
+                'RegEx':
+`// RegEx sample\nvar regex = new RegEx('foo', 'g');\nvar str = 'foo bar foo';\nSystem.log('Match: ' + regex.match(str));\nSystem.log('Replace: ' + regex.replace(str, 'baz'));\nSystem.log('Test: ' + regex.test(str));`,
+                'RESTHost':
+`// RESTHost sample (CORS must be allowed by the API!)\nvar host = new RESTHost('https://jsonplaceholder.typicode.com');\nvar req = host.createRequest('GET', '/posts/1');\nhost.executeRequest(req, function(response) {\n  System.log('Status: ' + response.statusCode);\n  System.log('Content: ' + response.contentAsString);\n});\n// Note: Output will appear after the request completes.`,
             };
             // Attach click listeners to sidebar class links
             var navLinks = document.querySelectorAll('.nav-link .nav-text');
@@ -609,6 +752,30 @@
                 });
             });
             // --- END: Sidebar class click handler ---
+
+            // XML (E4X-like stub) implementation
+            function XML(xmlString) {
+                this._xmlString = String(xmlString || '');
+                // Very basic parsing for demonstration only
+                var match = this._xmlString.match(/^<([\w-]+)>/);
+                this._rootName = match ? match[1] : '';
+                this._children = [];
+                var childMatch = this._xmlString.match(/<([\w-]+)>([^<]+)<\/[\w-]+>/);
+                if (childMatch) {
+                    this._children.push(childMatch[2]);
+                }
+            }
+            XML.prototype.toString = function() {
+                return this._xmlString;
+            };
+            XML.prototype.name = function() {
+                return this._rootName;
+            };
+            XML.prototype.child = function(idx) {
+                return this._children[idx] || null;
+            };
+            // Make XML globally available
+            window.XML = XML;
 
             // Create single editor instance with combined example code
             editor = monaco.editor.create(document.getElementById('container'), {
@@ -723,8 +890,8 @@ System.log("URL content length: " + content.length());`,
                     { pattern: /\bObject\.setPrototypeOf\b/, message: "Object.setPrototypeOf is not supported (Rhino 1.7R4/ES5.1)." },
                     { pattern: /\bObject\.getPrototypeOf\b/, message: "Object.getPrototypeOf is not supported (Rhino 1.7R4/ES5.1)." },
                     // Destructuring
-                    { pattern: /\{\s*\w+\s*\}/, message: "Object destructuring is not supported (Rhino 1.7R4/ES5.1)." },
-                    { pattern: /\[\s*\w+\s*\]/, message: "Array destructuring is not supported (Rhino 1.7R4/ES5.1)." },
+                    //{ pattern: /\{\s*\w+\s*\}/, message: "Object destructuring is not supported (Rhino 1.7R4/ES5.1)." },
+                    // Removed array destructuring warning as it is supported in Rhino 1.7R4/ES5.1
                 ];
                 const errors = [];
                 // Remove comments before checking for class keyword
