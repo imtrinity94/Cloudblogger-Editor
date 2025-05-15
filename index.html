@@ -340,6 +340,7 @@
                     <a class="nav-link"><span class="nav-text">SecureString</span></a>
                     <a class="nav-link"><span class="nav-text">RegEx</span></a>
                     <a class="nav-link"><span class="nav-text">RESTHost</span></a>
+                    <a class="nav-link"><span class="nav-text">CompositeType</span></a>
                 </div>
             </div>
         </div>
@@ -705,6 +706,30 @@
             window.RESTResponse = RESTResponse;
             // --- END: RESTHost and RESTResponse classes ---
 
+            // --- BEGIN: CompositeType class (vRO-like stub) ---
+            function CompositeType(typeName, initialValues) {
+                this.typeName = typeName;
+                this.values = initialValues || {};
+            }
+            CompositeType.prototype.get = function(key) {
+                return this.values[key];
+            };
+            CompositeType.prototype.set = function(key, value) {
+                this.values[key] = value;
+            };
+            CompositeType.prototype.keys = function() {
+                var arr = [];
+                for (var k in this.values) {
+                    if (this.values.hasOwnProperty(k)) arr.push(k);
+                }
+                return arr;
+            };
+            CompositeType.prototype.toString = function() {
+                return '[CompositeType ' + this.typeName + '] ' + JSON.stringify(this.values);
+            };
+            window.CompositeType = CompositeType;
+            // --- END: CompositeType class ---
+
             // --- BEGIN: Sidebar class click handler ---
             // Mapping of class names to sample code
             var classSamples = {
@@ -727,7 +752,46 @@
                 'Lodash (_)':
 `// Lodash sample\nvar arr = [1, 2, 2, 3, 4, 4, 5];\nvar unique = _.uniq(arr);\n\nvar users = [\n  { name: 'Alice', age: 30 },\n  { name: 'Bob', age: 25 }\n];\nvar sorted = _.sortBy(users, 'age');\nSystem.log('Sorted users: ' + JSON.stringify(sorted));`,
                 'Date':
-`// Date sample\nvar now = new Date();\nSystem.log('Current date/time: ' + now.toUTCString());\nSystem.log('Year: ' + now.getUTCFullYear());`,
+`// vRO Date class samples
+var now = Date.now(); // Get current date
+System.log('Current date/time: ' + now.toString());
+
+// Date arithmetic
+var futureDate = now.addDays(7)
+                   .addMonths(1)
+                   .addYears(1)
+                   .addHours(2)
+                   .addMinutes(30)
+                   .addSeconds(15)
+                   .addMilliseconds(500);
+System.log('Future date: ' + futureDate);
+
+// Date comparison
+var comparisonResult = now.compareTo(futureDate);
+System.log('Comparison result (now vs future): ' + comparisonResult); // -1
+
+// Date formatting
+System.log('Formatted date: ' + now.format('yyyy-MM-dd HH:mm:ss.SSS'));
+
+// Date parsing
+try {
+    var parsedDate = Date.parse('2025-01-01');
+    System.log('Parsed date: ' + parsedDate);
+} catch (e) {
+    System.error('Failed to parse date: ' + e.message);
+}
+
+// Date components
+System.log('Year: ' + now.getFullYear());
+System.log('Month: ' + (now.getMonth() + 1)); // Months are 0-based
+System.log('Day: ' + now.getDate());
+System.log('Hours: ' + now.getHours());
+System.log('Minutes: ' + now.getMinutes());
+System.log('Seconds: ' + now.getSeconds());
+System.log('Milliseconds: ' + now.getMilliseconds());
+
+// Convert to number (timestamp)
+System.log('Timestamp: ' + now.toNumber());`,
                 'EmailMessage':
 `// EmailMessage sample\nvar email = new EmailMessage();\nemail.setFromAddress('sender@example.com');\nemail.addToAddress('recipient@example.com');\nemail.setSubject('Test Email');\nemail.setBody('This is a test email from vRO-like editor.');\nvar att = new MimeAttachment('test.txt', 'Hello World', 'text/plain');\nemail.addMimeAttachment(att);\nemail.send();`,
                 'XML':
@@ -738,6 +802,8 @@
 `// RegEx sample\nvar regex = new RegEx('foo', 'g');\nvar str = 'foo bar foo';\nSystem.log('Match: ' + regex.match(str));\nSystem.log('Replace: ' + regex.replace(str, 'baz'));\nSystem.log('Test: ' + regex.test(str));`,
                 'RESTHost':
 `// RESTHost sample (CORS must be allowed by the API!)\nvar host = new RESTHost('https://jsonplaceholder.typicode.com');\nvar req = host.createRequest('GET', '/posts/1');\nhost.executeRequest(req, function(response) {\n  System.log('Status: ' + response.statusCode);\n  System.log('Content: ' + response.contentAsString);\n});\n// Note: Output will appear after the request completes.`,
+                'CompositeType':
+`// CompositeType sample\nvar person = new CompositeType('Person', { name: 'Alice', age: 30 });\nSystem.log('Name: ' + person.get('name'));\nperson.set('age', 31);\nSystem.log('All keys: ' + person.keys());\nSystem.log('CompositeType: ' + person.toString());`,
             };
             // Attach click listeners to sidebar class links
             var navLinks = document.querySelectorAll('.nav-link .nav-text');
@@ -776,6 +842,142 @@
             };
             // Make XML globally available
             window.XML = XML;
+
+            // --- BEGIN: Enhanced vRO Date class ---
+            Date.prototype.addDays = function(days) {
+                var date = new Date(this.valueOf());
+                date.setDate(date.getDate() + days);
+                return date;
+            };
+
+            Date.prototype.addMonths = function(months) {
+                var date = new Date(this.valueOf());
+                date.setMonth(date.getMonth() + months);
+                return date;
+            };
+
+            Date.prototype.addYears = function(years) {
+                var date = new Date(this.valueOf());
+                date.setFullYear(date.getFullYear() + years);
+                return date;
+            };
+
+            Date.prototype.addHours = function(hours) {
+                var date = new Date(this.valueOf());
+                date.setHours(date.getHours() + hours);
+                return date;
+            };
+
+            Date.prototype.addMinutes = function(minutes) {
+                var date = new Date(this.valueOf());
+                date.setMinutes(date.getMinutes() + minutes);
+                return date;
+            };
+
+            Date.prototype.addSeconds = function(seconds) {
+                var date = new Date(this.valueOf());
+                date.setSeconds(date.getSeconds() + seconds);
+                return date;
+            };
+
+            Date.prototype.addMilliseconds = function(milliseconds) {
+                var date = new Date(this.valueOf());
+                date.setMilliseconds(date.getMilliseconds() + milliseconds);
+                return date;
+            };
+
+            Date.prototype.compareTo = function(otherDate) {
+                if (!(otherDate instanceof Date)) {
+                    throw new Error('Invalid argument type. Expected Date.');
+                }
+                var diff = this.getTime() - otherDate.getTime();
+                return diff === 0 ? 0 : (diff < 0 ? -1 : 1);
+            };
+
+            Date.prototype.toString = function() {
+                return this.toUTCString();
+            };
+
+            Date.prototype.toNumber = function() {
+                return this.getTime();
+            };
+
+            // Static methods
+            Date.now = function() {
+                return new Date();
+            };
+
+            Date.parse = function(dateString) {
+                var parsed = new Date(dateString);
+                if (isNaN(parsed.getTime())) {
+                    throw new Error('Invalid date format');
+                }
+                return parsed;
+            };
+
+            // Helper methods for common date operations
+            Date.prototype.format = function(pattern) {
+                var date = this;
+                var pad = function(num) {
+                    return (num < 10 ? '0' : '') + num;
+                };
+                
+                return pattern.replace(/yyyy|MM|dd|HH|mm|ss|SSS/g, function(match) {
+                    switch (match) {
+                        case 'yyyy': return date.getFullYear();
+                        case 'MM': return pad(date.getMonth() + 1);
+                        case 'dd': return pad(date.getDate());
+                        case 'HH': return pad(date.getHours());
+                        case 'mm': return pad(date.getMinutes());
+                        case 'ss': return pad(date.getSeconds());
+                        case 'SSS': return String(date.getMilliseconds()).padStart(3, '0');
+                        default: return match;
+                    }
+                });
+            };
+
+            // Update Date sample code
+            classSamples['Date'] =
+`// vRO Date class samples
+var now = Date.now(); // Get current date
+System.log('Current date/time: ' + now.toString());
+
+// Date arithmetic
+var futureDate = now.addDays(7)
+                   .addMonths(1)
+                   .addYears(1)
+                   .addHours(2)
+                   .addMinutes(30)
+                   .addSeconds(15)
+                   .addMilliseconds(500);
+System.log('Future date: ' + futureDate);
+
+// Date comparison
+var comparisonResult = now.compareTo(futureDate);
+System.log('Comparison result (now vs future): ' + comparisonResult); // -1
+
+// Date formatting
+System.log('Formatted date: ' + now.format('yyyy-MM-dd HH:mm:ss.SSS'));
+
+// Date parsing
+try {
+    var parsedDate = Date.parse('2025-01-01');
+    System.log('Parsed date: ' + parsedDate);
+} catch (e) {
+    System.error('Failed to parse date: ' + e.message);
+}
+
+// Date components
+System.log('Year: ' + now.getFullYear());
+System.log('Month: ' + (now.getMonth() + 1)); // Months are 0-based
+System.log('Day: ' + now.getDate());
+System.log('Hours: ' + now.getHours());
+System.log('Minutes: ' + now.getMinutes());
+System.log('Seconds: ' + now.getSeconds());
+System.log('Milliseconds: ' + now.getMilliseconds());
+
+// Convert to number (timestamp)
+System.log('Timestamp: ' + now.toNumber());`;
 
             // Create single editor instance with combined example code
             editor = monaco.editor.create(document.getElementById('container'), {
