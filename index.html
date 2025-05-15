@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cloudblogger Editor</title>
+    <link rel="stylesheet" href="https://unpkg.com/@cds/core/global.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/@cds/core/styles/theme.dark.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/@clr/ui/clr-ui.min.css">
+    <style>
+        body {
+            background-color: #e9ecef;
+            color: #e9ecef;
+            margin: 0;
+            font-family: Clarity City, "Avenir Next", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Noto Sans", "Ubuntu", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header-bar {
+            background-color: #21333b;
+            color: #ffffff;
+            padding: 12px 24px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #324f61;
+        }
+        .logo {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+        }
+        .main-content {
+            padding: 20px;
+        }
+        #container {
+            /* width: 500px; */
+            height: 450px;
+            border: 1px solid #324f61;
+            margin-bottom: 10px;
+            background-color: #1b2a32;
+            border-top: none;
+            border-radius: 0 0 3px 3px;
+        }
+
+        #output {
+            /* width: 90%; */
+            height: 250px;
+            border: 1px solid #324f61;
+            padding: 10px;
+            background-color: #0f171c;
+            color: #49afd9;
+            overflow: auto;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        #run-button {
+            margin: 0;
+            padding: 4px 12px;
+            background-color: #49afd9;
+            color: #0f171c;
+            border: none;
+            cursor: pointer;
+            /* border-radius: 3px; */
+            /* font-weight: 500; */
+            font-family: inherit;
+            font-size: 16px;
+            line-height: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: background-color 0.2s ease;
+            width: auto;
+            /* min-width: 80px; */
+        }
+
+        #run-button:hover {
+            background-color: #60b6dd;
+        }
+
+        #run-button:active {
+            background-color: #0077b8;
+        }
+        .timestamp {
+            color: #8c9ba5;
+            margin-right: 8px;
+        }
+        .error-message {
+            color: #f54f47;
+        }
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 60px);
+            overflow: hidden;
+            background-color: #1b2a32;
+            flex-direction: row;
+        }
+
+        .clr-vertical-nav {
+            width: 200px;
+            background-color: #1b2a32;
+            border-right: 1px solid #324f61;
+            overflow-y: auto;
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        .editor-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 20px;
+            gap: 10px;
+        }
+
+        #container {
+            flex: 1;
+            border: 1px solid #324f61;
+            margin-bottom: 10px;
+            background-color: #1b2a32;
+        }
+
+        #output {
+            height: 30vh;
+            border: 1px solid #324f61;
+            padding: 10px;
+            background-color: #0f171c;
+            color: #49afd9;
+            overflow: auto;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .right-panel {
+            width: 300px;
+            background-color: #1b2a32;
+            border: 1px solid #324f61;
+            border-radius: 3px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .panel-section {
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            color: #e9ecef;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #324f61;
+        }
+
+        .panel-content {
+            color: #c6cdd4;
+            font-size: 13px;
+        }
+
+        .tree-view {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .tree-item {
+            padding: 4px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .tree-item:hover {
+            color: #49afd9;
+        }
+
+        .tree-item::before {
+            content: "›";
+            margin-right: 5px;
+            color: #8c9ba5;
+        }
+
+        .properties-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .property-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 13px;
+        }
+
+        .property-label {
+            color: #8c9ba5;
+        }
+
+        .property-value {
+            color: #e9ecef;
+        }
+    </style>
+    <style id="clarity-ui-light-override" disabled>
+        body[cds-theme="light"] html,
+        body[cds-theme="light"] body,
+        body[cds-theme="light"] .main-container {
+            background: #f8f9fa !important;
+        }
+        body[cds-theme="light"] .header-bar {
+            background: #0B1622 !important;
+            color: #fff !important;
+        }
+        body[cds-theme="light"] .main-container > .clr-vertical-nav {
+            min-height: 100vh !important;
+            background: #f8f9fa !important;
+        }
+        body[cds-theme="light"] .clr-vertical-nav {
+            background: #f8f9fa !important;
+            color: #222 !important;
+            border-right: 1px solid #e0e0e0 !important;
+        }
+        body[cds-theme="light"] .nav-link {
+            color: #222 !important;
+            background: transparent !important;
+        }
+        body[cds-theme="light"] .nav-link:hover {
+            background: #e0e0e0 !important;
+            color: #0077b8 !important;
+        }
+        body[cds-theme="light"] .nav-group-text {
+            color: #444 !important;
+        }
+        body[cds-theme="light"] .editor-section {
+            background: #fff !important;
+            color: #222 !important;
+        }
+        /* Code tab button for light mode */
+        body[cds-theme="light"] .code-tab,
+        body[cds-theme="light"] .code-tab.active {
+            background: #fff !important;
+            color: #222 !important;
+        }
+        body[cds-theme="light"] .code-tab.active::after {
+            background: #0077b8 !important;
+        }
+        /* Add more overrides as needed for other elements */
+    </style>
+</head>
+<body cds-theme="dark">
+    <div style="background:#49afd9;color:#0f171c;padding:10px 24px;font-size:15px;font-weight:500;text-align:center;letter-spacing:0.01em;">
+        This page provides a Aria Automation Orchestrator-like code editor with ES5.1 JavaScript support, custom logging, and simulated vRO classes for testing and learning.
+    </div>
+    <div class="header-bar">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Cpath fill='%2349AFD9' d='M18 0C8.06 0 0 8.06 0 18s8.06 18 18 18 18-8.06 18-18S27.94 0 18 0zm0 33c-8.271 0-15-6.729-15-15S9.729 3 18 3s15 6.729 15 15-6.729 15-15 15z'/%3E%3C/svg%3E" class="logo" alt="Logo">
+        Cloudblogger Editor
+        <button id="theme-toggle" style="margin-left:auto;background:#324f61;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:14px;">🌙 Dark Mode</button>
+    </div>
+    <div class="main-container">
+        <div class="clr-vertical-nav has-nav-groups">
+            <div class="nav-group">
+                <div class="nav-group-content">
+                    <button class="nav-group-trigger" type="button">
+                        <span class="nav-group-text">Available Classes</span>
+                    </button>
+                </div>
+                <div class="nav-group-children">
+                    <a class="nav-link">
+                        <span class="nav-text">System</span>
+                    </a>
+                    <a class="nav-link">
+                        <span class="nav-text">ByteBuffer</span>
+                    </a>
+                    <a class="nav-link">
+                        <span class="nav-text">MimeAttachment</span>
+                    </a>
+                    <a class="nav-link">
+                        <span class="nav-text">File</span>
+                    </a>
+                    <a class="nav-link">
+                        <span class="nav-text">Command</span>
+                    </a>
+                    <a class="nav-link">
+                        <span class="nav-text">URL</span>
+                    </a>
+                    <a class="nav-link">
+                        <span class="nav-text">ZipWriter</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="editor-section">
+            <div class="editor-toolbar">
+                <button class="code-tab active">Code</button>
+            </div>
+            <div id="container"></div>
+            <div class="button-container">
+                <button id="run-button"><span style="font-size: 12px;">▶</span> Run</button>
+            </div>
+            <div id="output">Output will appear here...</div>
+        </div>
+    </div>
+
+    <link id="clarity-theme-link" rel="stylesheet" href="https://unpkg.com/@cds/core/styles/theme.dark.min.css">
+    <link id="clarity-ui-link" rel="stylesheet" href="https://unpkg.com/@clr/ui/clr-ui.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.js"></script>
+    <script>
+        let isDarkMode = true;
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const clarityThemeLink = document.getElementById('clarity-theme-link');
+        const clarityUIThemeLink = document.getElementById('clarity-ui-link');
+        const body = document.body;
+        let editor; // Will be assigned later
+
+        function setTheme(dark) {
+            if (dark) {
+                clarityThemeLink.href = 'https://unpkg.com/@cds/core/styles/theme.dark.min.css';
+                clarityUIThemeLink.href = 'https://unpkg.com/@clr/ui/clr-ui.min.css';
+                body.setAttribute('cds-theme', 'dark');
+                if (editor) monaco.editor.setTheme('vs-dark');
+                themeToggleBtn.innerHTML = '🌙 Dark Mode';
+            } else {
+                clarityThemeLink.href = 'https://unpkg.com/@cds/core/styles/theme.light.min.css';
+                clarityUIThemeLink.href = 'https://unpkg.com/@clr/ui/clr-ui-light.min.css';
+                body.setAttribute('cds-theme', 'light');
+                if (editor) monaco.editor.setTheme('vs');
+                themeToggleBtn.innerHTML = '☀️ Light Mode';
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', function() {
+            isDarkMode = !isDarkMode;
+            setTheme(isDarkMode);
+        });
+
+        require.config({
+            paths: {
+                'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs'
+            }
+        });
+
+        require(['vs/editor/editor.main'], function() {
+            // Define the System class emulation with Rhino settings
+            const System = {
+                _logMarker: null,
+                _rhinoOptimizationLevel: -1,  // Set optimization level to -1
+                _rhinoVersion: "1.7r4",       // Set Rhino version to 1.7r4
+
+                _println(prefix, text) {
+                    const outText = text ? String(text).trim() : "";
+                    const timestamp = getTimestamp();
+                    outputDiv.innerHTML += `<span class="timestamp">${timestamp}</span>${prefix} ${outText}<br>`;
+                    if (this._logMarker) {
+                        console.log(`${prefix} {{${this._logMarker}}} ${outText}`);
+                    } else {
+                        console.log(`${prefix} ${outText}`);
+                    }
+                },
+
+                debug(text) {
+                    this._println("DEBUG", text);
+                },
+
+                error(text) {
+                    this._println("ERROR", text);
+                },
+
+                log(text) {
+                    this._println("INFO", text);
+                },
+
+                warn(text) {
+                    this._println("WARN", text);
+                },
+
+                getRhinoVersion() {
+                    return this._rhinoVersion;
+                },
+
+                getVersion() {
+                    return "8.18.1";
+                },
+
+                getRhinoOptimizationLevel() {
+                    return this._rhinoOptimizationLevel;
+                },
+
+                sleep(milliseconds) {
+                    return new Promise(resolve => setTimeout(resolve, milliseconds));
+                }
+            };
+
+            // Make System globally available
+            window.System = System;
+
+            // Define base classes and utilities
+            class ByteBuffer {
+                constructor(data) {
+                    this.buffer = new ArrayBuffer(data ? data.length : 0);
+                    this.view = new Uint8Array(this.buffer);
+                    if (data) {
+                        this.view.set(data);
+                    }
+                }
+
+                getBytes() {
+                    return Array.from(this.view);
+                }
+
+                length() {
+                    return this.buffer.byteLength;
+                }
+            }
+
+            class MimeAttachment {
+                constructor(name, content, mimeType) {
+                    this.name = name;
+                    this.content = content;
+                    this.mimeType = mimeType || 'application/octet-stream';
+                }
+
+                getName() {
+                    return this.name;
+                }
+
+                getContent() {
+                    return this.content;
+                }
+
+                getMimeType() {
+                    return this.mimeType;
+                }
+            }
+
+            class File {
+                constructor(path) {
+                    this.path = path;
+                    this._content = '';
+                }
+
+                exists() {
+                    return true; // Simulated
+                }
+
+                write(content) {
+                    this._content = content;
+                    System.log(`File written: ${this.path}`);
+                }
+
+                read() {
+                    return this._content;
+                }
+
+                copy(destination) {
+                    System.log(`File copied from ${this.path} to ${destination}`);
+                }
+            }
+
+            class Command {
+                constructor(cmd) {
+                    this.cmd = cmd;
+                }
+
+                execute() {
+                    System.log(`Executing command: ${this.cmd}`);
+                    return 0; // Simulated success
+                }
+
+                result() {
+                    return "Command executed successfully"; // Simulated result
+                }
+            }
+
+            class URL {
+                constructor(url) {
+                    this.url = url;
+                }
+
+                getContent() {
+                    return new ByteBuffer([]);
+                }
+            }
+
+            class ZipWriter {
+                constructor() {
+                    this.entries = new Map();
+                }
+
+                write(name, content) {
+                    this.entries.set(name, content);
+                    System.log(`Added to zip: ${name}`);
+                }
+
+                close() {
+                    System.log("Zip file closed");
+                }
+            }
+
+            // Make classes globally available
+            window.ByteBuffer = ByteBuffer;
+            window.MimeAttachment = MimeAttachment;
+            window.File = File;
+            window.Command = Command;
+            window.URL = URL;
+            window.ZipWriter = ZipWriter;
+
+            // Create single editor instance with combined example code
+            editor = monaco.editor.create(document.getElementById('container'), {
+                value: `// VMware Aria Automation Environment Example
+System.log("Rhino Engine Version: " + System.getRhinoVersion());
+System.log("Rhino Optimization Level: " + System.getRhinoOptimizationLevel());
+
+// Test vRO Classes
+var file = new File("/tmp/test.txt");
+file.write("Hello World");
+System.log("File content: " + file.read());
+
+var cmd = new Command("echo Hello");
+cmd.execute();
+System.log("Command result: " + cmd.result());
+
+var zip = new ZipWriter();
+zip.write("test.txt", "Hello World");
+zip.close();
+
+var attachment = new MimeAttachment(
+    "test.txt",
+    "Hello World",
+    "text/plain"
+);
+System.log("Attachment name: " + attachment.getName());
+
+var buffer = new ByteBuffer([72, 101, 108, 108, 111]); // "Hello" in ASCII
+System.log("Buffer length: " + buffer.length());
+
+var url = new URL("https://example.com");
+var content = url.getContent();
+System.log("URL content length: " + content.length());`,
+                language: 'javascript',
+                theme: isDarkMode ? 'vs-dark' : 'vs',
+                minimap: { enabled: false },
+                fontSize: 14,
+                fontFamily: "Consolas, Monaco, 'Courier New', monospace",
+                lineHeight: 21,
+                renderLineHighlight: 'all',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                contextmenu: true,
+                lineNumbers: 'on',
+                roundedSelection: false,
+                selectOnLineNumbers: true,
+                wordWrap: 'off',
+                folding: true,
+                glyphMargin: true,
+                renderIndentGuides: true,
+                scrollBeyondLastLine: false
+            });
+            setTheme(isDarkMode); // Ensure theme is set on load
+
+            // Custom console.log implementation
+            const originalConsoleLog = console.log;
+            const outputDiv = document.getElementById('output');
+
+            function getTimestamp() {
+                const now = new Date();
+                const pad = (num) => String(num).padStart(2, '0');
+                const year = now.getUTCFullYear();
+                const month = pad(now.getUTCMonth() + 1);
+                const day = pad(now.getUTCDate());
+                const hours = pad(now.getUTCHours());
+                const minutes = pad(now.getUTCMinutes());
+                const seconds = pad(now.getUTCSeconds());
+                const milliseconds = String(now.getUTCMilliseconds()).padStart(3, '0');
+                return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds} +00:00`;
+            }
+
+            function customLog(...args) {
+                const timestamp = getTimestamp();
+                const output = args.map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+                ).join(' ');
+                outputDiv.innerHTML += `<span class="timestamp">${timestamp}</span>${output}<br>`;
+                originalConsoleLog.apply(console, args); // Ensure logs also appear in the browser console
+            }
+
+            // Function to check for ES6+ syntax
+            function checkForES6Syntax(code) {
+                const es6Features = [
+                    { pattern: /\blet\b/, message: "'let' declaration is not supported. Use 'var' instead." },
+                    { pattern: /=>\s*{?/, message: "Arrow functions are not supported. Use regular function declarations instead." },
+                    { pattern: /\[\.{3}/, message: "Spread operator is not supported." },
+                    { pattern: /`[^`]*`/, message: "Template literals are not supported. Use string concatenation instead." },
+                    { pattern: /class\s+\w+/, message: "Class syntax is not supported. Use constructor functions instead." },
+                    { pattern: /\bimport\b|\bexport\b/, message: "ES6 modules (import/export) are not supported." },
+                    { pattern: /async\s+function|\bawait\b/, message: "Async/await is not supported." }
+                ];
+
+                const errors = [];
+                es6Features.forEach(feature => {
+                    if (feature.pattern.test(code)) {
+                        errors.push(feature.message);
+                    }
+                });
+                return errors;
+            }
+
+            // Run button click handler
+            document.getElementById('run-button').addEventListener('click', function() {
+                outputDiv.innerHTML = ''; // Clear previous output
+                const code = editor.getValue();
+
+                // First check for ES6 syntax
+                const es6Errors = checkForES6Syntax(code);
+                if (es6Errors.length > 0) {
+                    const timestamp = getTimestamp();
+                    outputDiv.innerHTML += `<span class="timestamp">${timestamp}</span><span class="error-message">vRO ES5.1 Compatibility Errors:</span><br>`;
+                    es6Errors.forEach(error => {
+                        outputDiv.innerHTML += `<span class="timestamp"></span><span class="error-message">- ${error}</span><br>`;
+                    });
+                    outputDiv.innerHTML += `<span class="timestamp"></span><span class="error-message">Please modify your code to use ES5.1 compatible syntax.</span><br>`;
+                    return;
+                }
+
+                try {
+                    // Execute the code if no ES6 syntax is found
+                    eval(code);
+                } catch (error) {
+                    const timestamp = getTimestamp();
+                    outputDiv.innerHTML += `<span class="timestamp">${timestamp}</span><span class="error-message">Runtime Error: ${error.message}</span><br>`;
+                }
+
+                if (messages && messages.length > 0) {
+                    // Display ESLint errors in the output panel
+                    messages.forEach((message) => {
+                        const timestamp = getTimestamp();
+                        outputDiv.innerHTML += `<span class="timestamp">${timestamp}</span><span class="error-message">Error: ${message.message} (Line: ${message.line}, Column: ${message.column})</span><br>`;
+                    });
+                } else {
+                    // Execute code if no errors
+                    try {
+                        console.log = customLog; // Override console.log
+                        eval(code); // Execute the code
+                    } catch (error) {
+                        const timestamp = getTimestamp();
+                        outputDiv.innerHTML += `<span class="timestamp">${timestamp}</span><span class="error-message">Error: ${error.message}</span><br>`;
+                    } finally {
+                        console.log = originalConsoleLog; // Restore console.log
+                    }
+                }
+            });
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/eslint/8.45.0/eslint.min.js"></script>
+    <script>
+        const eslintConfig = {
+            parserOptions: {
+                ecmaVersion: 5, // Restrict to ES5
+            },
+            env: {
+                browser: true,
+                es5: true,
+            },
+            rules: {
+                'no-arrow-functions': 'error',
+                'no-template-literals': 'error',
+                'no-default-parameters': 'error',
+                'no-rest-parameters': 'error',
+                'no-spread': 'error',
+                'no-class': 'error',
+                'no-let': 'error',
+                'no-const': 'error',
+                'no-generators': 'error',
+                'no-modules': 'error',
+                'no-destructuring': 'error',
+            },
+        };
+
+        document.getElementById('run-button').addEventListener('click', function () {
+            outputDiv.innerHTML = ''; // Clear previous output
+            const code = editor.getValue();
+
+            // Validate code with ESLint
+            const linter = new eslint.Linter();
+            const messages = linter.verify(code, eslintConfig);
+
+            if (messages.length > 0) {
+                // Display ESLint errors in the output panel
+                messages.forEach((message) => {
+                    const timestamp = getTimestamp();
+                    outputDiv.innerHTML += `<span class="timestamp">${timestamp}</span><span class="error-message">Error: ${message.message} (Line: ${message.line}, Column: ${message.column})</span><br>`;
+                });
+            } else {
+                // Execute code if no errors
+                try {
+                    console.log = customLog;
+                    eval(code);
+                    console.log = originalConsoleLog;
+                } catch (error) {
+                    const timestamp = getTimestamp();
+                    outputDiv.innerHTML += `<span class="timestamp">${timestamp}</span><span class="error-message">Error: ${error.message}</span><br>`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
+    <style>
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 60px);
+            overflow: hidden;
+            background-color: #1b2a32;
+            flex-direction: row;
+        }
+
+        .clr-vertical-nav {
+            width: 200px;
+            background-color: #1b2a32;
+            border-right: 1px solid #324f61;
+            overflow-y: auto;
+            height: 100%;
+            flex-shrink: 0;
+            padding: 0.5rem 0;
+        }
+
+        .editor-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        #container {
+            flex: 1;
+            border: 1px solid #324f61;
+            margin-bottom: 10px;
+            background-color: #1b2a32;
+        }
+
+        #output {
+            height: 30vh;
+            border: 1px solid #324f61;
+            padding: 10px;
+            background-color: #0f171c;
+            color: #49afd9;
+            overflow: auto;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .nav-group-text {
+            color: #e9ecef;
+            font-weight: 500;
+        }
+
+        .nav-link {
+            color: #c6cdd4;
+            padding: 8px 12px;
+            display: block;
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .nav-link:hover {
+            background-color: #324f61;
+            color: #49afd9;
+        }
+
+        .nav-group-children {
+            padding: 0;
+        }
+
+        .nav-group-trigger {
+            width: 100%;
+            padding: 12px;
+            text-align: left;
+            background: none;
+            border: none;
+            border-bottom: 1px solid #324f61;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #e9ecef;
+        }
+
+        .editor-toolbar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0;
+        }
+        .code-tab {
+            border: none;
+            border-radius: 3px 3px 0 0;
+            padding: 10px 32px;
+            font-size: 16px;
+            color: #e9ecef;
+            position: relative;
+            cursor: pointer;
+            outline: none !important;
+            box-shadow: none !important;
+            margin-right: 8px;
+            background: #1b2a32;
+        }
+        .code-tab.active {
+            background: #1b2a32;
+            color: #e9ecef;
+        }
+        .code-tab.active::after {
+            content: '';
+            display: block;
+            height: 4px;
+            background: #49afd9;
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -1px;
+            border-radius: 0 0 3px 3px;
+        }
+        .code-tab:focus {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        button.code-tab,
+        button.code-tab:focus,
+        button.code-tab:active,
+        button.code-tab:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        button.code-tab::-moz-focus-inner {
+            border: 0 !important;
+        }
+    </style>
