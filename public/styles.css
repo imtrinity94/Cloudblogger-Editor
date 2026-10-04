@@ -372,3 +372,30 @@ body[cds-theme="light"] .cbe-seg button[aria-checked="true"] small { color: #fff
 }
 .cbe-nav-row:hover .cbe-nav-del { visibility: visible; }
 .cbe-nav-del:hover { color: var(--err); }
+
+/* ---------------------------------------------------------------- enlarge (full screen) */
+
+.cbe-icon-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin: 0 0 4px 12px; height: 28px; padding: 0 10px;
+    border: 1px solid var(--border); border-radius: 3px;
+    background: transparent; color: var(--text-2);
+    font: 12px var(--sans); cursor: pointer;
+}
+.cbe-icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+.cbe-icon-btn svg { width: 14px; height: 14px; }
+.cbe-icon-btn .ico-shrink { display: none; }
+
+body.cbe-fullscreen { overflow: hidden; }
+body.cbe-fullscreen .cbe-editor {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    padding: 12px 16px;
+    background: var(--surface);
+}
+body[cds-theme="light"].cbe-fullscreen .cbe-editor { background: #ffffff; }
+body.cbe-fullscreen #editor { flex: 1 1 65%; }
+body.cbe-fullscreen .cbe-panel { flex-basis: 28vh; }
+body.cbe-fullscreen .cbe-icon-btn .ico-enlarge { display: none; }
+body.cbe-fullscreen .cbe-icon-btn .ico-shrink { display: inline; }

@@ -510,6 +510,38 @@
     themeBtn.addEventListener("click", function () { setTheme(!darkMode); });
     setTheme(darkMode);
 
+    // ------------------------------------------------------------- enlarge
+
+    // Fills the window with the editor, run row and output; also asks the browser
+    // for real full screen when allowed. Esc (or the button) goes back.
+    var enlargeBtn = byId("enlargeBtn");
+    function setEnlarged(on) {
+        var isOn = document.body.classList.contains("cbe-fullscreen");
+        if (on === isOn) return;
+        document.body.classList.toggle("cbe-fullscreen", on);
+        enlargeBtn.setAttribute("aria-pressed", String(on));
+        enlargeBtn.title = on ? "Exit full screen (Esc)" : "Enlarge to full screen (Esc to exit)";
+        enlargeBtn.querySelector(".lbl").textContent = on ? "Exit full screen" : "Enlarge";
+        try {
+            if (on && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(function () { /* window-filling view still works */ });
+            } else if (!on && document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen().catch(function () { /* ignore */ });
+            }
+        } catch (e) { /* ignore */ }
+        if (editor) { editor.layout(); editor.focus(); }
+    }
+    enlargeBtn.addEventListener("click", function () {
+        setEnlarged(!document.body.classList.contains("cbe-fullscreen"));
+    });
+    // Leaving browser full screen with Esc also leaves the enlarged view.
+    document.addEventListener("fullscreenchange", function () {
+        if (!document.fullscreenElement) setEnlarged(false);
+    });
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && document.body.classList.contains("cbe-fullscreen")) setEnlarged(false);
+    });
+
     // ------------------------------------------------------------- splitter
 
     (function () {
@@ -608,6 +640,10 @@
                 });
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function () { run([state.version]); });
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter, function () { run(["8x", "9x"]); });
+                // F11-style toggle that works while typing in the editor.
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF, function () {
+                    setEnlarged(!document.body.classList.contains("cbe-fullscreen"));
+                });
                 resolve();
             });
         });
