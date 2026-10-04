@@ -1,16 +1,11 @@
-# Use a lightweight web server image
+# Static site: nginx serves public/ (the engine jars are prebuilt in public/engines).
 FROM nginx:alpine
 
-# Set working directory
 WORKDIR /usr/share/nginx/html
-
-# Remove default nginx static assets
 RUN rm -rf ./*
+COPY public/ ./
 
-# Copy the HTML file into the container
-COPY index.html ./
+# CheerpJ fetches jars with HTTP Range requests; nginx supports them and already
+# maps .jar to application/java-archive.
 
-# Expose port 80
 EXPOSE 80
-
-# No CMD needed, nginx default is fine

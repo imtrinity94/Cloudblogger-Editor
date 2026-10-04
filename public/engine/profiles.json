@@ -1,0 +1,19 @@
+{
+  "8x": {
+    "label": "Orchestrator 8.x",
+    "detail": "Aria Automation Orchestrator 8.x - Rhino 1.7R4",
+    "engine": "8x",
+    "languageVersion": 170,
+    "enableFeatures": [],
+    "removeGlobals": []
+  },
+  "9x": {
+    "label": "Orchestrator 9.x",
+    "detail": "VCF Operations Orchestrator 9.0 - Rhino 1.7.15",
+    "engine": "9x",
+    "languageVersion": 200,
+    "enableFeatures": [21],
+    "enableFeaturesNote": "21 = Context.FEATURE_ENABLE_JAVA_MAP_ACCESS: java.util.Map entries readable as properties (map.key), as in Orchestrator 9.x",
+    "removeGlobals": []
+  }
+}

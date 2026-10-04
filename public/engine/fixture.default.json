@@ -1,0 +1,56 @@
+{
+  "vcenter": {
+    "vcenters": [
+      {
+        "name": "vcsa01.vmw.lab",
+        "version": "9.0.0",
+        "datacenters": [{ "id": "datacenter-1", "name": "DC-Lab" }],
+        "clusters": [{ "id": "domain-c8", "name": "Cluster-01", "datacenter": "datacenter-1" }],
+        "hosts": [
+          { "id": "host-10", "name": "esx01.vmw.lab", "cluster": "domain-c8", "cpuCores": 32, "memoryGB": 512 },
+          { "id": "host-11", "name": "esx02.vmw.lab", "cluster": "domain-c8", "cpuCores": 32, "memoryGB": 512 },
+          { "id": "host-12", "name": "esx03.vmw.lab", "cluster": "domain-c8", "cpuCores": 32, "memoryGB": 512, "maintenance": true }
+        ],
+        "datastores": [
+          { "id": "datastore-20", "name": "vsanDatastore", "type": "vsan", "capacityGB": 8192, "freeGB": 5120 },
+          { "id": "datastore-21", "name": "nfs-templates", "type": "NFS", "capacityGB": 2048, "freeGB": 900 }
+        ],
+        "networks": [
+          { "id": "network-30", "name": "VM Network" },
+          { "id": "dvportgroup-31", "name": "pg-app-1010" }
+        ],
+        "vms": [
+          { "id": "vm-101", "name": "web-01", "powerState": "poweredOn", "cpu": 2, "memoryMB": 4096, "ip": "10.10.10.21", "hostname": "web-01.vmw.lab", "host": "host-10", "guestOS": "Ubuntu Linux (64-bit)", "datastores": ["datastore-20"], "networks": ["dvportgroup-31"], "tags": ["env:prod", "app:shop"] },
+          { "id": "vm-102", "name": "web-02", "powerState": "poweredOn", "cpu": 2, "memoryMB": 4096, "ip": "10.10.10.22", "hostname": "web-02.vmw.lab", "host": "host-11", "guestOS": "Ubuntu Linux (64-bit)", "datastores": ["datastore-20"], "networks": ["dvportgroup-31"], "tags": ["env:prod", "app:shop"] },
+          { "id": "vm-103", "name": "db-01", "powerState": "poweredOn", "cpu": 8, "memoryMB": 32768, "ip": "10.10.10.31", "hostname": "db-01.vmw.lab", "host": "host-10", "guestOS": "Red Hat Enterprise Linux 9 (64-bit)", "datastores": ["datastore-20"], "networks": ["dvportgroup-31"], "tags": ["env:prod", "app:shop"] },
+          { "id": "vm-104", "name": "test-win-01", "powerState": "poweredOff", "cpu": 4, "memoryMB": 8192, "host": "host-11", "guestOS": "Microsoft Windows Server 2022 (64-bit)", "datastores": ["datastore-20"], "networks": ["network-30"], "tags": ["env:dev"] },
+          { "id": "vm-105", "name": "tpl-ubuntu-24", "powerState": "poweredOff", "template": true, "cpu": 2, "memoryMB": 2048, "guestOS": "Ubuntu Linux (64-bit)", "datastores": ["datastore-21"] }
+        ]
+      }
+    ]
+  },
+  "configurationElements": {
+    "Web/Settings": {
+      "Defaults": { "domain": "vmw.lab", "dnsServers": ["10.10.0.10", "10.10.0.11"], "maxCpu": 8 }
+    }
+  },
+  "resourceElements": {
+    "Web/Templates": {
+      "vm-request.json": { "name": "", "cpu": 2, "memoryMB": 4096, "network": "pg-app-1010" },
+      "readme.txt": "Mock resource element content"
+    }
+  },
+  "rest": {
+    "hosts": [{ "name": "ipam", "url": "https://ipam.vmw.lab/api" }],
+    "routes": [
+      { "method": "GET", "url": "ipam\\.vmw\\.lab/api/networks/?$", "status": 200, "body": [{ "id": 1, "cidr": "10.10.10.0/24", "name": "app-1010" }] },
+      { "method": "POST", "url": "ipam\\.vmw\\.lab/api/networks/\\d+/next-ip$", "status": 201, "body": { "ip": "10.10.10.50", "status": "reserved" } }
+    ]
+  },
+  "context": { "__asd_requestedBy": "user@vmw.lab", "__asd_tenantRef": "lab" },
+  "actions": {
+    "com.example.utils": {
+      "toUpperSnake": "function (s) { return String(s).replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase(); }"
+    }
+  }
+}

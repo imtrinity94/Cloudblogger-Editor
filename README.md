@@ -1,58 +1,84 @@
-# Cloudblogger Editor (vRO Scripting Emulator)
-![screenshot (1)](https://github.com/user-attachments/assets/1fed42c7-fe36-447c-827a-0d066cc08547)
+# Cloudblogger Editor
 
-## Overview
-Cloudblogger Editor is a web-based code editor that emulates the VMware Aria Automation Orchestrator (vRO) scripting environment. It is designed for learning, testing, and prototyping vRO-compatible JavaScript code in a modern browser, with a focus on ES5.1 (Rhino 1.7R4) compatibility.
+**A vRO / VCF Orchestrator script console that runs your JavaScript on the real Rhino engines, in the browser.**
 
-## Use Case
-- **vRO Scripting Practice:** Safely write and test vRO scripts using simulated vRO classes (System, File, Command, URL, ZipWriter, MimeAttachment, ByteBuffer, Properties) without needing a live vRO instance.
-- **ES5.1 Compatibility Checking:** The editor enforces ES5.1 (Rhino 1.7R4) syntax, warning about unsupported or deprecated JavaScript features, so you can ensure your code will run in vRO.
-- **Learning & Prototyping:** Explore vRO scripting concepts, class APIs, and logging in a sandboxed environment with instant feedback.
+| Orchestrator | Engine | Language level |
+|---|---|---|
+| Aria Automation Orchestrator 8.x | Mozilla Rhino **1.7R4** | JavaScript 1.7 |
+| VCF Operations Orchestrator 9.0 | Mozilla Rhino **1.7.15** | ES6 mode (+ Java Map access) |
 
-## Features
-- **Monaco Editor:** Modern code editing experience with syntax highlighting, line numbers, and more.
-- **vRO Class Emulation:** Simulated vRO classes and methods for realistic scripting.
-- **Custom Logging:** Output panel with timestamped logs, warnings, and errors.
-- **Sidebar with Class Samples:** Click on a class in the sidebar to insert sample code for that class.
-- **Theme Toggle:** Switch between dark and light modes for comfortable coding.
-- **Deprecated/Unsupported Feature Warnings:** Clear guidance when using features not supported by vRO's Rhino engine (e.g., ES6+ syntax, 'for each', 'class' keyword, etc.).
-- **Docker Deployment:** Easily deployable via Docker and nginx for local or shared use.
+Earlier versions of this project emulated vRO with the browser's own JavaScript engine and regex checks. That could never reproduce Rhino's behaviour (Java strings, `for each`, E4X, exactly which ES6+ syntax parses). Version 2 compiles the actual Rhino release tags to Java 8 bytecode and runs them in [CheerpJ](https://cheerpj.com), a WebAssembly JVM. The page is fully static, so it hosts on Vercel and nothing is sent to a server.
 
-## How to Use
-1. **Write or Paste Code:** Use the Monaco editor to write your vRO-compatible JavaScript code.
-2. **Insert Class Samples:** Click a class name in the sidebar to insert example code for that class.
-3. **Run Code:** Click the "Run" button to execute your code. Output and logs appear in the output panel below.
-4. **Switch Theme:** Use the theme toggle button in the header to switch between dark and light modes.
-5. **Check Compatibility:** The editor will warn you if you use unsupported or deprecated JavaScript features.
+## What behaves like Orchestrator
 
-## Requirements
-- Modern web browser (Chrome, Edge, Firefox, etc.)
-- (Optional) Docker for containerized deployment
+- **Syntax and built-ins come from the real parser and runtime.** Arrow functions fail on 8.x and work on 9.x. `class`, spread, default parameters, `?.` and `??` fail on both. `for (const x of ...)` is a syntax error on 9.x while `let`/`var` work. See the [measured feature matrix](docs/feature-matrix.md).
+- **Class shutter:** only `java.util.*` is reachable, which is the vRO default. `new java.io.File(...)` fails the way it does on a real server.
+- **Actions vs scriptable tasks.** An action is wrapped in a function, so `return` works and inputs are parameters. A scriptable task runs outside the root scope, so `return` gives `SyntaxError: invalid return`, and top-level variables are read back as outputs.
+- **Version-specific runtime.** 9.x enables `FEATURE_ENABLE_JAVA_MAP_ACCESS` (`map.key`) and a `console` object; 8.x has neither.
+- **Errors and line numbers come straight from Rhino.** They're labelled the way Orchestrator does: `(Dynamic Script Module name : myAction#3)` or `(Workflow:Test / Scriptable task (item1)#3)`.
+- **Runaway loops are stopped** by Rhino's instruction observer after 15 s.
+- **Serialization rules are flagged.** XML and function values used as task outputs get a note, because Orchestrator can't pass them between workflow elements.
+- **vCenter plug-in array conversion is reproduced.** Assigning `[]` to `spec.deviceChange` and then writing `spec.deviceChange[0]` is silently lost, while building the array first works. See [the post](https://cloudblogger.co.in/2022/04/03/javascript-to-java-conversion-limitation-in-vro/).
 
-## Deployment
-To run locally with Docker:
+## Mocked vRO APIs
+
+Implemented in [`public/engine/vro-mocks.js`](public/engine/vro-mocks.js), which is plain ES5 loaded into Rhino before your script:
+
+- **`System`**: `log`/`warn`/`error`/`debug`, `sleep`, `getModule`, `getContext`, `nextUUID`, `formatDate`, `getDateFromFormat`, `getCurrentTime`
+- **`Server`**: configuration and resource elements, `findForType`, `findAllForType`
+- **`VcPlugin`** and VC objects:
+  - VMs, hosts, clusters, datastores, networks
+  - VM power operations, reconfigure, rename, snapshots, destroy
+  - `VcTask`, plus `com.vmware.library.vc.basic/vim3WaitTaskEnd`
+- **`RESTHost`, `RESTHostManager`, `RESTRequest`, `RESTResponse`**: canned responses from route rules
+- **`Properties`, `LockingSystem`, `File`/`FileReader`/`FileWriter`, `MimeAttachment`, `Command`** (never executes anything)
+- **Your own mocked actions**, called through `System.getModule("com.acme").myAction(...)`
+
+All of this reads an editable JSON inventory: the **Mocks** tab, defaulting to [`fixture.default.json`](public/engine/fixture.default.json). Nothing connects to real infrastructure.
+
+## Run locally
+
 ```sh
-docker build -t cloudblogger-editor .
-docker run -d -p 8080:80 cloudblogger-editor
-```
-Then open [http://localhost:8080](http://localhost:8080) in your browser.
-
-or 
-
-To run locally using npx:
-```powershell
-npx serve
+npm run dev          # serves public/ on http://localhost:8080
 ```
 
-## Limitations
-- This tool is an emulator and does not connect to a real vRO instance.
-- Only a subset of vRO classes and methods are simulated.
-- File and command operations are simulated and do not affect your real filesystem or OS.
-- **No plugin support:** vRO plugins and their APIs are not available or emulated.
-- **No infrastructure connectivity:** The tool cannot connect to external systems, APIs, or infrastructure (e.g., vCenter, REST endpoints, databases).
-- **No support for complex or non-standard vRO code:** Custom vRO scripting features, non-standard JavaScript extensions, and advanced vRO workflow constructs are not supported.
-- **No persistence:** Data and files are not saved between sessions.
-- **No Polyglot Support:** Can't execute Polyglot Runtime code
+or `docker build -t cloudblogger-editor . && docker run -p 8080:80 cloudblogger-editor`.
 
-## License
-This project is provided for educational and prototyping purposes. No official affiliation with VMware or Aria Automation Orchestrator.
+The server must support HTTP Range requests, because CheerpJ loads the jars in chunks. `serve`, nginx and Vercel all do; `python -m http.server` does not.
+
+## Deploy to Vercel
+
+Import the repo. `vercel.json` sets `public/` as the output directory with no build step. The prebuilt jars in `public/engines/` are committed.
+
+## Rebuilding the engines
+
+```sh
+npm run build:engine   # needs git + JDK 11+; clones Rhino tags, compiles to Java 8 bytecode
+npm test               # 79 runtime/mock tests on a desktop JVM, same jars as the browser
+npm run matrix         # regenerates docs/feature-matrix.md
+```
+
+Layout:
+
+```
+engine/java/vroconsole/Runner.java     compiled once per Rhino version (shutter, wrapping, timeouts)
+engine/launcher/vroconsole/Launcher.java  loads each engine in its own class loader
+public/engines/*.jar                   rhino-1.7R4, rhino-1.7.15, runner-8x, runner-9x, launcher
+public/engine/                         mocks, default inventory, version profiles, request builder
+public/index.html, app.js, styles.css  the console UI (Monaco editor)
+```
+
+Version settings (language level, Rhino feature flags) live in [`public/engine/profiles.json`](public/engine/profiles.json). Add a profile there plus a `runner-<id>.jar` to support another Orchestrator release (e.g. 9.1).
+
+## Limits
+
+- Plugins other than the mocked vCenter/REST surface aren't available. Polyglot (Python, Node.js, PowerShell) actions aren't supported.
+- Mocked objects cover common properties and methods, not the full vSphere API.
+- The first load downloads the CheerpJ runtime and about 2 MB of engine jars. After that, runs take milliseconds.
+
+## Licences
+
+- This project: MIT.
+- Rhino: MPL 2.0. The jars are compiled unmodified from [mozilla/rhino](https://github.com/mozilla/rhino) tags `Rhino1_7R4_RELEASE` and `Rhino1_7_15_Release`.
+- CheerpJ is loaded from Leaning Technologies' CDN under its [Community licence](https://cheerpj.com/licensing/) (free for personal and open-source projects).
+- Not affiliated with Broadcom or VMware.

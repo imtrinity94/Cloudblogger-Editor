@@ -1,0 +1,14 @@
+{
+  "name": "cloudblogger-editor",
+  "version": "2.0.0",
+  "private": true,
+  "description": "vRO / VCF Orchestrator script console running the real Rhino engines (1.7R4 for 8.x, 1.7.15 for 9.x) in the browser via CheerpJ.",
+  "license": "MIT",
+  "author": "Mayank Goyal (imtrinity94)",
+  "scripts": {
+    "dev": "npx --yes serve public -l 8080",
+    "build:engine": "bash engine/build.sh",
+    "test": "node engine/test/run-tests.js",
+    "matrix": "node engine/test/run-tests.js --matrix"
+  }
+}
