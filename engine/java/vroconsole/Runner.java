@@ -178,6 +178,23 @@ public final class Runner {
     static final boolean[] TRACE = { false };
     static final long[] TRACE_T0 = { 0 };
 
+    // The mocks are ~40 KB of JavaScript; compiling them dominates run time under
+    // CheerpJ, so keep the compiled (interpreted-mode) script for identical source.
+    private static String cachedMocksSource;
+    private static Script cachedMocks;
+    private static int cachedMocksLang = -1;
+    static boolean lastMocksHit;
+
+    static synchronized Script compiledMocks(Context cx, String source) {
+        lastMocksHit = cachedMocks != null && cachedMocksLang == cx.getLanguageVersion() && source.equals(cachedMocksSource);
+        if (!lastMocksHit) {
+            cachedMocks = cx.compileString(source, "vro-mocks.js", 1, null);
+            cachedMocksSource = source;
+            cachedMocksLang = cx.getLanguageVersion();
+        }
+        return cachedMocks;
+    }
+
     static void trace(String step) {
         if (TRACE[0]) System.err.println("[vroconsole] +" + (System.currentTimeMillis() - TRACE_T0[0]) + "ms " + step);
     }
@@ -232,9 +249,15 @@ public final class Runner {
 
             // Mocks (System, Server, VcPlugin...) are plain JavaScript loaded into the root scope.
             trace("context ready");
+            String fixtureJson = req.str("fixture", "");
+            if (fixtureJson.length() > 0) {
+                Object fixture = cx.evaluateString(global, "(" + fixtureJson + ")", "fixture.json", 1, null);
+                global.put("__vroFixture", global, fixture);
+                trace("fixture loaded");
+            }
             if (prelude.length() > 0) {
-                Script mocksScript = cx.compileString(prelude, "vro-mocks.js", 1, null);
-                trace("mocks compiled");
+                Script mocksScript = compiledMocks(cx, prelude);
+                trace("mocks compiled (cached=" + (lastMocksHit) + ")");
                 mocksScript.exec(cx, global);
                 trace("mocks executed");
             }

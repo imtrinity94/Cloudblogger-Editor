@@ -7,11 +7,12 @@
 
     function buildRequest(opts) {
         var profile = opts.profile;
-        // Assigned (not declared) so the runner can delete it after the mocks load.
-        var prelude = "this.__vroFixture = " + JSON.stringify(opts.fixture || {}) + ";\n" + opts.mocks;
+        // Mocks are compiled once and cached by the engine; the fixture travels separately.
+        var prelude = opts.mocks;
         return JSON.stringify({
             code: opts.code,
             prelude: prelude,
+            fixture: JSON.stringify(opts.fixture || {}),
             mode: opts.mode || "action",
             name: opts.name || (opts.mode === "task" ? "item1" : "myAction"),
             workflow: opts.workflow || "Test",

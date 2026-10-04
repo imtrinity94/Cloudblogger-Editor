@@ -20,6 +20,8 @@ WORK="${WORK:-$HERE/.build}"
 mkdir -p "$OUT" "$WORK"
 
 JAVAC_OPTS=(-nowarn -encoding UTF-8 --release 8)
+# Fixed timestamps make rebuilt jars byte-identical, so browsers' cached copies stay valid.
+JAR_DATE=(--date=2024-01-01T00:00:00Z)
 
 build_rhino() { # <tag> <version>
   local tag=$1 ver=$2 src="$WORK/rhino-$2" cls="$WORK/classes-rhino-$2"
@@ -50,7 +52,7 @@ build_rhino() { # <tag> <version>
   fi
 
   rm -f "$OUT/rhino-$ver.jar"
-  jar cfm "$OUT/rhino-$ver.jar" "$mf" -C "$cls" .
+  jar --create --file "$OUT/rhino-$ver.jar" --manifest "$mf" "${JAR_DATE[@]}" -C "$cls" .
   echo "built rhino-$ver.jar"
 }
 
@@ -59,7 +61,7 @@ build_runner() { # <engineId> <rhinoVersion>
   rm -rf "$cls" && mkdir -p "$cls"
   javac "${JAVAC_OPTS[@]}" -cp "$OUT/rhino-$ver.jar" -d "$cls" "$HERE"/java/vroconsole/*.java
   rm -f "$OUT/runner-$id.jar"
-  jar cf "$OUT/runner-$id.jar" -C "$cls" .
+  jar --create --file "$OUT/runner-$id.jar" "${JAR_DATE[@]}" -C "$cls" .
   echo "built runner-$id.jar"
 }
 
@@ -72,6 +74,6 @@ cls="$WORK/classes-launcher"
 rm -rf "$cls" && mkdir -p "$cls"
 javac "${JAVAC_OPTS[@]}" -d "$cls" "$HERE"/launcher/vroconsole/Launcher.java
 rm -f "$OUT/launcher.jar"
-jar cf "$OUT/launcher.jar" -C "$cls" .
+jar --create --file "$OUT/launcher.jar" "${JAR_DATE[@]}" -C "$cls" .
 echo "built launcher.jar"
 ls -la "$OUT"

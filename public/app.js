@@ -69,7 +69,7 @@
     function ensureEngine(engine) {
         if (!loadedEngines[engine]) {
             busy("Loading " + ENGINE_NAME[engine] + " engine…");
-            loadedEngines[engine] = launcher.warm(engine).then(function (r) {
+            loadedEngines[engine] = withTimeout(launcher.warm(engine), 120000, "Loading the " + ENGINE_NAME[engine] + " engine").then(function (r) {
                 if (String(r) !== "ok") { loadedEngines[engine] = null; throw new Error(String(r)); }
             });
         }
@@ -307,8 +307,18 @@
         });
     }
 
+    function withTimeout(promise, ms, what) {
+        return new Promise(function (resolve, reject) {
+            var t = setTimeout(function () {
+                reject(new Error(what + " did not respond within " + Math.round(ms / 1000) +
+                    "s. Reload the page; if it keeps happening, open debug.html and send the result."));
+            }, ms);
+            promise.then(function (v) { clearTimeout(t); resolve(v); }, function (e) { clearTimeout(t); reject(e); });
+        });
+    }
+
     function callEngine(engine, request) {
-        return launcher.run(engine, request).then(function (r) {
+        return withTimeout(launcher.run(engine, request), 90000, "The " + ENGINE_NAME[engine] + " engine").then(function (r) {
             if (typeof r === "string") return r;
             return r && typeof r.toString === "function" ? r.toString() : String(r);
         }).then(function (text) {
