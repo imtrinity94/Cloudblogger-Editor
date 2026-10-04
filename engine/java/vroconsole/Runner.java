@@ -175,6 +175,13 @@ public final class Runner {
 
     // ------------------------------------------------------------------- run
 
+    static final boolean[] TRACE = { false };
+    static final long[] TRACE_T0 = { 0 };
+
+    static void trace(String step) {
+        if (TRACE[0]) System.err.println("[vroconsole] +" + (System.currentTimeMillis() - TRACE_T0[0]) + "ms " + step);
+    }
+
     public static String run(String requestJson) {
         Json.Obj req;
         try {
@@ -200,6 +207,10 @@ public final class Runner {
             if (f instanceof Number) enabled.add(Integer.valueOf(((Number) f).intValue()));
         }
 
+        final boolean trace = "true".equals(req.str("trace", "false"));
+        final long tStart = System.currentTimeMillis();
+        TRACE[0] = trace; TRACE_T0[0] = tStart;
+        trace("request parsed (" + requestJson.length() + " chars)");
         final long deadline = System.currentTimeMillis() + timeoutMs;
         final LogSink sink = new LogSink();
         Factory factory = new Factory(langVersion, deadline, enabled);
@@ -220,8 +231,12 @@ public final class Runner {
             }
 
             // Mocks (System, Server, VcPlugin...) are plain JavaScript loaded into the root scope.
+            trace("context ready");
             if (prelude.length() > 0) {
-                cx.evaluateString(global, prelude, "vro-mocks.js", 1, null);
+                Script mocksScript = cx.compileString(prelude, "vro-mocks.js", 1, null);
+                trace("mocks compiled");
+                mocksScript.exec(cx, global);
+                trace("mocks executed");
             }
             // The mocks captured these in closures; hide them from user scripts.
             global.delete("__vroHost");
@@ -246,6 +261,7 @@ public final class Runner {
                 inValues[i] = v;
             }
 
+            trace("inputs evaluated");
             Object result;
             String sourceName;
             if ("task".equals(mode)) {
@@ -271,7 +287,9 @@ public final class Runner {
                 Script script = cx.compileString(header.toString(), sourceName, 1, null);
                 compiling[0] = false;
                 Function fn = (Function) script.exec(cx, elementScope);
+                trace("script compiled");
                 result = fn.call(cx, elementScope, elementScope, inValues);
+                trace("script finished");
             }
 
             Object inspectObj = ScriptableObject.getProperty(global, "__vroInspect");

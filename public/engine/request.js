@@ -21,7 +21,8 @@
             enableFeatures: profile.enableFeatures || [],
             allowJava: opts.allowJava || [],
             inputs: opts.inputs || [],
-            outputs: opts.outputs || []
+            outputs: opts.outputs || [],
+            trace: opts.trace ? "true" : "false"
         });
     }
 
