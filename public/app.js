@@ -578,8 +578,13 @@
 
                 var initial = state.code;
                 if (initial === null || initial === undefined) {
+                    // First visit: load the default sample with its inputs.
                     var s = findSample(state.sample) || window.VRO_SAMPLES[0].items[0];
                     initial = s.code;
+                    state.sample = s.id;
+                    state.inputs = (s.inputs || []).map(function (x) { return { name: x.name, value: x.value }; });
+                    renderIo();
+                    markSample();
                 }
                 editor = monaco.editor.create(byId("editor"), {
                     value: initial,

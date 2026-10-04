@@ -14,6 +14,7 @@ Earlier versions of this project emulated vRO with the browser's own JavaScript 
 - **Syntax and built-ins come from the real parser and runtime.** Arrow functions fail on 8.x and work on 9.x. `class`, spread, default parameters, `?.` and `??` fail on both. `for (const x of ...)` is a syntax error on 9.x while `let`/`var` work. See the [measured feature matrix](docs/feature-matrix.md).
 - **Class shutter:** only `java.util.*` is reachable, which is the vRO default. `new java.io.File(...)` fails the way it does on a real server.
 - **Scripts run like an action.** They are wrapped in a function, so `return` gives the return value, and the Inputs tab supplies the parameters.
+- **Your own scripts.** "+ New script" starts a blank one and "Save current" keeps it under My scripts in your browser.
 - **Version-specific runtime.** 9.x enables `FEATURE_ENABLE_JAVA_MAP_ACCESS` (`map.key`) and a `console` object; 8.x has neither.
 - **Errors and line numbers come straight from Rhino.** They're labelled the way Orchestrator labels an action: `(Dynamic Script Module name : myAction#3)`.
 - **Runaway loops are stopped** by Rhino's instruction observer after 15 s.
@@ -63,7 +64,7 @@ Layout:
 ```
 engine/java/vroconsole/Runner.java     compiled once per Rhino version (shutter, wrapping, timeouts)
 engine/launcher/vroconsole/Launcher.java  loads each engine in its own class loader
-public/engines/*.jar                   rhino-1.7R4, rhino-1.7.15, runner-8x, runner-9x, launcher
+public/engines/v-<hash>/*.jar          rhino-1.7R4, rhino-1.7.15, runner-8x, runner-9x, launcher
 public/engine/                         mocks, default inventory, version profiles, request builder
 public/index.html, app.js, styles.css  the console UI (Monaco editor)
 ```
@@ -74,7 +75,7 @@ Version settings (language level, Rhino feature flags) live in [`public/engine/p
 
 - Plugins other than the mocked vCenter/REST surface aren't available. Polyglot (Python, Node.js, PowerShell) actions aren't supported.
 - Mocked objects cover common properties and methods, not the full vSphere API.
-- The first load downloads the CheerpJ runtime and about 2 MB of engine jars. After that, runs take milliseconds.
+- The first visit downloads the CheerpJ runtime and about 2 MB of engine jars, which takes around 30-40 seconds. The first run on each engine takes a few seconds while it warms up; later runs take under a second.
 
 ## Licences
 
