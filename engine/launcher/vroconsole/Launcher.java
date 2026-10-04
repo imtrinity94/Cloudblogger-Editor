@@ -86,7 +86,8 @@ public final class Launcher {
     /** Loads an engine ahead of the first run so the first click is fast. */
     public static String warm(String engine) {
         try {
-            engine(engine);
+            // A tiny run, so Rhino's classes are loaded and compiled before the user's first script.
+            engine(engine).invoke(null, "{\"code\":\"return 1\"}");
             return "ok";
         } catch (Throwable t) {
             return "error: " + t;

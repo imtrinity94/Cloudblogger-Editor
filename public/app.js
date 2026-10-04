@@ -47,6 +47,34 @@
     var editor = null, fixtureEditor = null;
     var mocksSource = "", profiles = null, defaultFixtureText = "";
     var launcher = null;
+    var loadedEngines = {};
+    var ENGINE_NAME = { "8x": "8.x (Rhino 1.7R4)", "9x": "9.x (Rhino 1.7.15)" };
+
+    // Shows elapsed seconds while something slow is happening.
+    var tickTimer = null;
+    function busy(text) {
+        clearInterval(tickTimer);
+        var start = Date.now();
+        setStatus("busy", text);
+        tickTimer = setInterval(function () {
+            setStatus("busy", text + " " + Math.round((Date.now() - start) / 1000) + "s");
+        }, 1000);
+    }
+    function idle(kind, text) {
+        clearInterval(tickTimer);
+        setStatus(kind, text);
+    }
+
+    // One load per engine, shared by every caller (CheerpJ runs Java calls one at a time).
+    function ensureEngine(engine) {
+        if (!loadedEngines[engine]) {
+            busy("Loading " + ENGINE_NAME[engine] + " engine…");
+            loadedEngines[engine] = launcher.warm(engine).then(function (r) {
+                if (String(r) !== "ok") { loadedEngines[engine] = null; throw new Error(String(r)); }
+            });
+        }
+        return loadedEngines[engine];
+    }
     var running = false;
 
     function byId(id) { return document.getElementById(id); }
@@ -296,13 +324,15 @@
         running = true;
         refreshButtons();
         showTab("output");
-        setStatus("busy", "Running…");
         monaco.editor.setModelMarkers(editor.getModel(), "vro", []);
 
         var results = [];
         var chain = Promise.resolve();
         engines.forEach(function (engine) {
             chain = chain.then(function () {
+                return ensureEngine(engine);
+            }).then(function () {
+                busy("Running on " + ENGINE_NAME[engine] + "…");
                 return callEngine(engine, buildRequest(engine)).then(function (res) {
                     results.push({ engine: engine, res: res });
                 });
@@ -311,9 +341,9 @@
         chain.then(function () {
             renderResults(results);
             markErrors(results);
-            setStatus("ready", "Engines ready");
+            idle("ready", "Ready");
         }).catch(function (e) {
-            setStatus("error", "Run failed: " + e);
+            idle("error", "Run failed: " + e);
         }).then(function () {
             running = false;
             refreshButtons();
@@ -598,23 +628,18 @@
         if (typeof cheerpjInit !== "function") {
             return Promise.reject(new Error("CheerpJ runtime could not be loaded (blocked network or ad blocker?)"));
         }
-        setStatus("busy", "Starting Java runtime…");
+        // First visit downloads the Java runtime (cached afterwards), so show progress.
+        busy("Starting Java runtime (first visit can take ~30s)…");
         return cheerpjInit({ status: "none" })
-            .then(function () {
-                setStatus("busy", "Loading Rhino engines…");
-                return cheerpjRunLibrary("/app/engines/launcher.jar");
-            })
+            .then(function () { return cheerpjRunLibrary("/app/engines/launcher.jar"); })
             .then(function (lib) { return lib.vroconsole.Launcher; })
             .then(function (L) {
-                // Load the selected engine first, then the other one in the background.
-                var first = state.version, second = first === "8x" ? "9x" : "8x";
-                return L.warm(first).then(function (r) {
-                    if (String(r) !== "ok") throw new Error(String(r));
-                    launcher = L;
-                    setStatus("ready", "Engines ready");
-                    refreshButtons();
-                    return L.warm(second);
-                });
+                launcher = L;
+                return ensureEngine(state.version);
+            })
+            .then(function () {
+                idle("ready", "Ready");
+                refreshButtons();
             });
     }
 
@@ -644,6 +669,6 @@
         return initEngine();
     }).catch(function (e) {
         console.error(e);
-        setStatus("error", e.message || String(e));
+        idle("error", e.message || String(e));
     });
 })();
