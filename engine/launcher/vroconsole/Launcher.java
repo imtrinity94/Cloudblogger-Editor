@@ -51,6 +51,38 @@ public final class Launcher {
         return m;
     }
 
+    public static String ping() {
+        return "pong " + System.getProperty("java.version");
+    }
+
+    /** Step-by-step engine load report, for troubleshooting in the browser. */
+    public static String diag(String engine) {
+        StringBuilder b = new StringBuilder();
+        long t0 = System.currentTimeMillis();
+        try {
+            String[] jars = { rhinoJar(engine), "runner-" + engine + ".jar" };
+            for (int i = 0; i < jars.length; i++) {
+                File f = new File(baseDir, jars[i]);
+                b.append(jars[i]).append(" exists=").append(f.exists()).append(" len=").append(f.length())
+                 .append(" @").append(System.currentTimeMillis() - t0).append("ms\n");
+            }
+            URL[] urls = new URL[] { new File(baseDir, jars[0]).toURI().toURL(), new File(baseDir, jars[1]).toURI().toURL() };
+            b.append("urls ").append(urls[0]).append("\n");
+            ClassLoader cl = new URLClassLoader(urls, null);
+            b.append("loader ok @").append(System.currentTimeMillis() - t0).append("ms\n");
+            Class<?> ctx = cl.loadClass("org.mozilla.javascript.Context");
+            b.append("Context loaded @").append(System.currentTimeMillis() - t0).append("ms\n");
+            Class<?> runner = Class.forName("vroconsole.Runner", true, cl);
+            b.append("Runner loaded @").append(System.currentTimeMillis() - t0).append("ms\n");
+            Object r = runner.getMethod("run", String.class).invoke(null, "{\"code\":\"return 1+1\"}");
+            b.append("run -> ").append(r).append(" @").append(System.currentTimeMillis() - t0).append("ms\n");
+        } catch (Throwable t) {
+            b.append("FAILED: ").append(t);
+            if (t.getCause() != null) b.append(" cause: ").append(t.getCause());
+        }
+        return b.toString();
+    }
+
     /** Loads an engine ahead of the first run so the first click is fast. */
     public static String warm(String engine) {
         try {

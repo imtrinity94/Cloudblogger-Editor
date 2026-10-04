@@ -10,6 +10,19 @@
 
     var ENGINE_LABEL = { "8x": "8.x · Rhino 1.7R4", "9x": "9.x · Rhino 1.7.15" };
     var STORE_KEY = "cbe.state.v3";
+    var MY_KEY = "cbe.myscripts.v1";
+
+    function loadMine() {
+        try { return JSON.parse(localStorage.getItem(MY_KEY)) || []; } catch (e) { return []; }
+    }
+    function saveMine(list) {
+        try { localStorage.setItem(MY_KEY, JSON.stringify(list)); } catch (e) { /* private mode */ }
+    }
+    var BLANK = "// Your script. It runs like an Orchestrator action:\n" +
+        "//   - `return` gives the return value\n" +
+        "//   - add inputs in the Inputs tab (name = JavaScript expression)\n" +
+        "//   - System, Server, VcPlugin, RESTHost... are mocked (see the Mocks tab)\n\n" +
+        "System.log(\"Hello\");\n";
 
     var state = load() || {
         version: "9x",
@@ -50,7 +63,7 @@
     }
 
     function setStatus(kind, text) {
-        els.status.className = "status " + kind;
+        els.status.className = "cbe-status " + kind;
         els.status.querySelector(".txt").textContent = text;
     }
 
@@ -106,15 +119,15 @@
     // ---------------------------------------------------------------- tabs
 
     function showTab(name) {
-        Array.prototype.forEach.call(document.querySelectorAll(".panel .tabs [role=tab]"), function (t) {
+        Array.prototype.forEach.call(document.querySelectorAll(".cbe-panel .tabs [role=tab]"), function (t) {
             t.classList.toggle("active", t.dataset.tab === name);
         });
-        Array.prototype.forEach.call(document.querySelectorAll(".tab-body"), function (b) {
+        Array.prototype.forEach.call(document.querySelectorAll(".cbe-tab-body"), function (b) {
             b.classList.toggle("active", b.dataset.tab === name);
         });
         if (name === "mocks" && fixtureEditor) fixtureEditor.layout();
     }
-    document.querySelector(".panel .tabs").addEventListener("click", function (e) {
+    document.querySelector(".cbe-panel .tabs").addEventListener("click", function (e) {
         var t = e.target.closest("[role=tab]");
         if (t) showTab(t.dataset.tab);
     });
@@ -131,14 +144,60 @@
 
     function renderSidebar() {
         els.sidebar.innerHTML = "";
+        var mh = document.createElement("div");
+        mh.className = "cbe-nav-group";
+        mh.textContent = "My scripts";
+        els.sidebar.appendChild(mh);
+
+        var actions = document.createElement("div");
+        actions.className = "cbe-nav-actions";
+        var newBtn = document.createElement("button");
+        newBtn.className = "cbe-link";
+        newBtn.textContent = "+ New script";
+        newBtn.addEventListener("click", function () {
+            applyScript({ id: "mine:new", code: BLANK, inputs: [] });
+        });
+        var saveBtn = document.createElement("button");
+        saveBtn.className = "cbe-link";
+        saveBtn.textContent = "Save current";
+        saveBtn.addEventListener("click", saveCurrent);
+        actions.appendChild(newBtn);
+        actions.appendChild(saveBtn);
+        els.sidebar.appendChild(actions);
+
+        loadMine().forEach(function (m) {
+            var row = document.createElement("div");
+            row.className = "cbe-nav-row";
+            var b = document.createElement("button");
+            b.className = "cbe-nav-link";
+            b.dataset.id = "mine:" + m.name;
+            b.textContent = m.name;
+            b.addEventListener("click", function () {
+                applyScript({ id: "mine:" + m.name, code: m.code, inputs: m.inputs || [] });
+            });
+            var del = document.createElement("button");
+            del.className = "cbe-nav-del";
+            del.title = "Delete " + m.name;
+            del.setAttribute("aria-label", "Delete " + m.name);
+            del.textContent = "×";
+            del.addEventListener("click", function () {
+                if (!window.confirm("Delete \"" + m.name + "\" from My scripts?")) return;
+                saveMine(loadMine().filter(function (x) { return x.name !== m.name; }));
+                renderSidebar();
+            });
+            row.appendChild(b);
+            row.appendChild(del);
+            els.sidebar.appendChild(row);
+        });
+
         window.VRO_SAMPLES.forEach(function (g) {
             var h = document.createElement("div");
-            h.className = "nav-group-trigger";
+            h.className = "cbe-nav-group";
             h.textContent = g.group;
             els.sidebar.appendChild(h);
             g.items.forEach(function (s) {
                 var b = document.createElement("button");
-                b.className = "nav-link";
+                b.className = "cbe-nav-link";
                 b.dataset.id = s.id;
                 b.textContent = s.title;
                 b.addEventListener("click", function () { applySample(s); });
@@ -149,7 +208,7 @@
     }
 
     function markSample() {
-        Array.prototype.forEach.call(els.sidebar.querySelectorAll(".nav-link"), function (b) {
+        Array.prototype.forEach.call(els.sidebar.querySelectorAll(".cbe-nav-link"), function (b) {
             b.classList.toggle("active", b.dataset.id === state.sample);
         });
     }
@@ -161,6 +220,28 @@
         }
         return null;
     }
+
+    function saveCurrent() {
+        var current = state.sample && state.sample.indexOf("mine:") === 0 && state.sample !== "mine:new"
+            ? state.sample.substr(5) : "";
+        var name = window.prompt("Save this script to My scripts as:", current || "My script");
+        if (!name) return;
+        name = name.trim();
+        if (!name) return;
+        var list = loadMine().filter(function (x) { return x.name !== name; });
+        list.unshift({
+            name: name,
+            code: editor ? editor.getValue() : state.code,
+            inputs: state.inputs.filter(function (i) { return i.name; }),
+            saved: Date.now()
+        });
+        saveMine(list);
+        state.sample = "mine:" + name;
+        save();
+        renderSidebar();
+    }
+
+    function applyScript(s) { applySample(s); }
 
     function applySample(s) {
         state.sample = s.id;
@@ -261,7 +342,7 @@
             var col = el("div", "run-col");
 
             var head = el("div", "run-head");
-            head.appendChild(el("span", "badge " + (res.ok ? "ok" : "fail"), res.ok ? "completed" : "failed"));
+            head.appendChild(el("span", "cbe-badge " + (res.ok ? "ok" : "fail"), res.ok ? "completed" : "failed"));
             head.appendChild(el("span", "", r.engine === "8x" ? "8.x" : "9.x"));
             if (res.engineVersion) head.appendChild(el("span", "", "· " + res.engineVersion));
             if (res.durationMs !== undefined) head.appendChild(el("span", "", "· " + res.durationMs + " ms"));
@@ -398,7 +479,7 @@
         });
         splitter.addEventListener("pointermove", function (e) {
             if (!dragging) return;
-            var ws = document.querySelector(".editor-section").getBoundingClientRect();
+            var ws = document.querySelector(".cbe-editor").getBoundingClientRect();
             var h = Math.max(120, Math.min(ws.bottom - e.clientY, ws.height - 140));
             panel.style.flex = "0 0 " + h + "px";
             if (editor) editor.layout();

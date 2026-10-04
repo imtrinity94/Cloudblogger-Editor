@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Engine diagnostics</title>
+    <style>
+        body { background: #0f171c; color: #49afd9; font: 14px Consolas, monospace; padding: 20px; }
+        pre { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h3>Cloudblogger Editor: engine diagnostics</h3>
+    <pre id="log"></pre>
+    <script src="https://cjrtnc.leaningtech.com/4.3/loader.js"></script>
+    <script>
+        var t0 = performance.now();
+        function log(m) {
+            document.getElementById("log").textContent += Math.round(performance.now() - t0) + "ms  " + m + "\n";
+        }
+        (async function () {
+            try {
+                log("cheerpjInit…");
+                await cheerpjInit({ status: "default" });
+                log("runLibrary…");
+                var lib = await cheerpjRunLibrary("/app/engines/launcher.jar");
+                var L = await lib.vroconsole.Launcher;
+                log("ping: " + await L.ping());
+                var engines = new URLSearchParams(location.search).get("engine") || "8x";
+                log("diag " + engines + ":\n" + await L.diag(engines));
+            } catch (e) {
+                log("ERROR: " + e + (e && e.stack ? "\n" + e.stack : ""));
+            }
+        })();
+    </script>
+</body>
+</html>
