@@ -89,7 +89,7 @@
     bindSeg("versionSeg", "version");
 
     function onModeChange() {
-        els.editorTitle.textContent = state.mode === "task" ? "Scriptable task (item1)" : "myAction";
+        els.editorTitle.textContent = state.mode === "task" ? "Code · Scriptable task" : "Code · Action";
         els.outputsCol.classList.toggle("disabled", state.mode !== "task");
     }
 
@@ -129,7 +129,7 @@
     // ---------------------------------------------------------------- tabs
 
     function showTab(name) {
-        Array.prototype.forEach.call(document.querySelectorAll(".tabs [role=tab]"), function (t) {
+        Array.prototype.forEach.call(document.querySelectorAll(".panel .tabs [role=tab]"), function (t) {
             t.classList.toggle("active", t.dataset.tab === name);
         });
         Array.prototype.forEach.call(document.querySelectorAll(".tab-body"), function (b) {
@@ -137,7 +137,7 @@
         });
         if (name === "mocks" && fixtureEditor) fixtureEditor.layout();
     }
-    document.querySelector(".tabs").addEventListener("click", function (e) {
+    document.querySelector(".panel .tabs").addEventListener("click", function (e) {
         var t = e.target.closest("[role=tab]");
         if (t) showTab(t.dataset.tab);
     });
@@ -146,7 +146,7 @@
         els.output.classList.toggle("hide-debug", !els.debugToggle.checked);
     });
     byId("clearBtn").addEventListener("click", function () {
-        els.output.innerHTML = '<div class="empty">Output cleared.</div>';
+        els.output.innerHTML = '<div class="empty">Output will appear here...</div>';
         if (editor) monaco.editor.setModelMarkers(editor.getModel(), "vro", []);
     });
 
@@ -155,11 +155,13 @@
     function renderSidebar() {
         els.sidebar.innerHTML = "";
         window.VRO_SAMPLES.forEach(function (g) {
-            var h = document.createElement("h4");
+            var h = document.createElement("div");
+            h.className = "nav-group-trigger";
             h.textContent = g.group;
             els.sidebar.appendChild(h);
             g.items.forEach(function (s) {
                 var b = document.createElement("button");
+                b.className = "nav-link";
                 b.dataset.id = s.id;
                 b.textContent = s.title;
                 if (s.mode === "task") {
@@ -176,7 +178,7 @@
     }
 
     function markSample() {
-        Array.prototype.forEach.call(els.sidebar.querySelectorAll("button"), function (b) {
+        Array.prototype.forEach.call(els.sidebar.querySelectorAll(".nav-link"), function (b) {
             b.classList.toggle("active", b.dataset.id === state.sample);
         });
     }
@@ -397,27 +399,28 @@
 
     // ---------------------------------------------------------------- theme
 
-    function isDark() {
-        var t = document.documentElement.getAttribute("data-theme");
-        if (t) return t === "dark";
-        return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    // Same switch as v1: Clarity dark/light stylesheets, body[cds-theme], Monaco vs-dark/vs.
+    var themeBtn = byId("themeBtn");
+    var darkMode = true;
+    try { darkMode = localStorage.getItem("cbe.theme") !== "light"; } catch (e) { /* ignore */ }
+
+    function isDark() { return darkMode; }
+
+    function setTheme(dark) {
+        darkMode = dark;
+        byId("clarity-theme-link").href = dark
+            ? "https://unpkg.com/@cds/core/styles/theme.dark.min.css"
+            : "https://unpkg.com/@cds/core/styles/theme.light.min.css";
+        byId("clarity-ui-link").href = dark
+            ? "https://unpkg.com/@clr/ui/clr-ui.min.css"
+            : "https://unpkg.com/@clr/ui/clr-ui-light.min.css";
+        document.body.setAttribute("cds-theme", dark ? "dark" : "light");
+        themeBtn.textContent = dark ? "🌙 Dark Mode" : "☀️ Light Mode";
+        if (window.monaco) monaco.editor.setTheme(dark ? "vs-dark" : "vs");
+        try { localStorage.setItem("cbe.theme", dark ? "dark" : "light"); } catch (e) { /* ignore */ }
     }
-    function applyMonacoTheme() {
-        if (window.monaco) monaco.editor.setTheme(isDark() ? "vs-dark" : "vs");
-    }
-    try {
-        var savedTheme = localStorage.getItem("cbe.theme");
-        if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
-    } catch (e) { /* ignore */ }
-    byId("themeBtn").addEventListener("click", function () {
-        var next = isDark() ? "light" : "dark";
-        document.documentElement.setAttribute("data-theme", next);
-        try { localStorage.setItem("cbe.theme", next); } catch (e) { /* ignore */ }
-        applyMonacoTheme();
-    });
-    if (window.matchMedia) {
-        window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyMonacoTheme);
-    }
+    themeBtn.addEventListener("click", function () { setTheme(!darkMode); });
+    setTheme(darkMode);
 
     // ------------------------------------------------------------- splitter
 
@@ -429,7 +432,7 @@
         });
         splitter.addEventListener("pointermove", function (e) {
             if (!dragging) return;
-            var ws = document.querySelector(".workspace").getBoundingClientRect();
+            var ws = document.querySelector(".editor-section").getBoundingClientRect();
             var h = Math.max(120, Math.min(ws.bottom - e.clientY, ws.height - 140));
             panel.style.flex = "0 0 " + h + "px";
             if (editor) editor.layout();
@@ -495,10 +498,15 @@
                     language: "javascript",
                     theme: isDark() ? "vs-dark" : "vs",
                     automaticLayout: true,
-                    fontFamily: "IBM Plex Mono, Consolas, monospace",
-                    fontSize: 13.5,
+                    fontFamily: "Consolas, Monaco, 'Courier New', monospace",
+                    fontSize: 14,
+                    lineHeight: 21,
                     minimap: { enabled: false },
+                    renderLineHighlight: "all",
                     scrollBeyondLastLine: false,
+                    glyphMargin: true,
+                    folding: true,
+                    roundedSelection: false,
                     tabSize: 4
                 });
                 editor.onDidChangeModelContent(function () {
@@ -518,8 +526,8 @@
             language: "json",
             theme: isDark() ? "vs-dark" : "vs",
             automaticLayout: true,
-            fontFamily: "IBM Plex Mono, Consolas, monospace",
-            fontSize: 12.5,
+            fontFamily: "Consolas, Monaco, 'Courier New', monospace",
+            fontSize: 13,
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
             tabSize: 2
