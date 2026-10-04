@@ -15,7 +15,7 @@ Earlier versions of this project emulated vRO with the browser's own JavaScript 
 - **Class shutter:** only `java.util.*` is reachable, which is the vRO default. `new java.io.File(...)` fails the way it does on a real server.
 - **Scripts run like an action.** They are wrapped in a function, so `return` gives the return value, and the Inputs tab supplies the parameters.
 - **Version-specific runtime.** 9.x enables `FEATURE_ENABLE_JAVA_MAP_ACCESS` (`map.key`) and a `console` object; 8.x has neither.
-- **Errors and line numbers come straight from Rhino.** They're labelled the way Orchestrator does: `(Dynamic Script Module name : myAction#3)` or `(Workflow:Test / Scriptable task (item1)#3)`.
+- **Errors and line numbers come straight from Rhino.** They're labelled the way Orchestrator labels an action: `(Dynamic Script Module name : myAction#3)`.
 - **Runaway loops are stopped** by Rhino's instruction observer after 15 s.
 - **Serialization rules are flagged.** Returning an XML object or a function gets a note, because Orchestrator can't pass those between workflow elements.
 - **vCenter plug-in array conversion is reproduced.** Assigning `[]` to `spec.deviceChange` and then writing `spec.deviceChange[0]` is silently lost, while building the array first works. See [the post](https://cloudblogger.co.in/2022/04/03/javascript-to-java-conversion-limitation-in-vro/).
