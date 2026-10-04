@@ -510,6 +510,16 @@
     themeBtn.addEventListener("click", function () { setTheme(!darkMode); });
     setTheme(darkMode);
 
+    // ------------------------------------------------------------- info bar
+
+    try { if (localStorage.getItem("cbe.bannerHidden") === "1") document.body.classList.add("cbe-banner-hidden"); }
+    catch (e) { /* ignore */ }
+    byId("bannerClose").addEventListener("click", function () {
+        document.body.classList.add("cbe-banner-hidden");
+        try { localStorage.setItem("cbe.bannerHidden", "1"); } catch (e) { /* ignore */ }
+        if (editor) editor.layout();
+    });
+
     // ------------------------------------------------------------- enlarge
 
     // Fills the window with the editor, run row and output; also asks the browser

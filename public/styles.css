@@ -73,7 +73,17 @@ code, kbd { font-family: var(--mono); }
     justify-content: center;
     gap: 10px;
 }
+.cbe-banner { position: relative; padding-right: 48px; }
 .cbe-banner a { display: inline-flex; color: var(--banner-fg); }
+.cbe-banner-close {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    width: 26px; height: 26px; display: grid; place-items: center;
+    border: 0; border-radius: 3px; background: transparent; color: var(--banner-fg);
+    cursor: pointer;
+}
+.cbe-banner-close:hover { background: rgba(15, 23, 28, 0.15); }
+.cbe-banner-close svg { width: 14px; height: 14px; }
+body.cbe-banner-hidden .cbe-banner { display: none; }
 .cbe-banner svg { width: 20px; height: 20px; fill: currentColor; }
 
 /* ---------------------------------------------------------------- header */
