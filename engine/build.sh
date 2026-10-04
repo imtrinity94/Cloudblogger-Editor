@@ -15,9 +15,9 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
-OUT="$ROOT/public/engines"
+OUT="$HERE/.build/out"
 WORK="${WORK:-$HERE/.build}"
-mkdir -p "$OUT" "$WORK"
+mkdir -p "$WORK" && rm -rf "$OUT" && mkdir -p "$OUT"
 
 JAVAC_OPTS=(-nowarn -encoding UTF-8 --release 8)
 # Fixed timestamps make rebuilt jars byte-identical, so browsers' cached copies stay valid.
@@ -76,4 +76,15 @@ javac "${JAVAC_OPTS[@]}" -d "$cls" "$HERE"/launcher/vroconsole/Launcher.java
 rm -f "$OUT/launcher.jar"
 jar --create --file "$OUT/launcher.jar" "${JAR_DATE[@]}" -C "$cls" .
 echo "built launcher.jar"
-ls -la "$OUT"
+
+# Publish under a content-hashed folder so a changed jar always gets a new URL.
+# (Browsers cache jar byte ranges; mixing ranges of an old and a new jar makes
+# CheerpJ abort with "server does not support Range".)
+HASH="$(cat "$OUT"/*.jar | sha256sum | cut -c1-12)"
+PUB="$ROOT/public/engines"
+for d in "$PUB"/v-*; do [ -d "$d" ] && [ "$d" != "$PUB/v-$HASH" ] && rm -rf "$d"; done
+mkdir -p "$PUB/v-$HASH"
+mv "$OUT"/*.jar "$PUB/v-$HASH/"
+printf '{ "dir": "engines/v-%s" }\n' "$HASH" > "$ROOT/public/engine/engines.json"
+echo "published engines/v-$HASH"
+ls -la "$PUB/v-$HASH"

@@ -23,8 +23,11 @@
                 log("cheerpjInit…");
                 await cheerpjInit({ status: "default" });
                 log("runLibrary…");
-                var lib = await cheerpjRunLibrary("/app/engines/launcher.jar");
+                var dir = JSON.parse(await (await fetch("engine/engines.json", { cache: "no-cache" })).text()).dir;
+                log("engine dir: " + dir);
+                var lib = await cheerpjRunLibrary("/app/" + dir + "/launcher.jar");
                 var L = await lib.vroconsole.Launcher;
+                await L.setBaseDir("/app/" + dir);
                 log("ping: " + await L.ping());
                 var q = new URLSearchParams(location.search);
                 var engine = q.get("engine") || "9x";

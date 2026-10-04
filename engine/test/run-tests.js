@@ -23,8 +23,9 @@ const features = require("./features.js");
 function runBatch(jobs) {
     const tmp = path.join(require("os").tmpdir(), "vro-batch-" + process.pid + ".jsonl");
     fs.writeFileSync(tmp, jobs.map(j => JSON.stringify({ engine: j.engine, request: JSON.parse(j.request) })).join("\n"));
-    const out = execFileSync("java", ["-cp", path.join(PUB, "engines/launcher.jar"), "vroconsole.Launcher",
-        path.join(PUB, "engines"), "batch", tmp], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: 1 << 26 });
+    const dir = path.join(PUB, JSON.parse(fs.readFileSync(path.join(PUB, "engine/engines.json"), "utf8")).dir);
+    const out = execFileSync("java", ["-cp", path.join(dir, "launcher.jar"), "vroconsole.Launcher",
+        dir, "batch", tmp], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: 1 << 26 });
     fs.unlinkSync(tmp);
     return out.trim().split("\n").map(l => JSON.parse(l));
 }

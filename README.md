@@ -48,7 +48,7 @@ The server must support HTTP Range requests, because CheerpJ loads the jars in c
 
 ## Deploy to Vercel
 
-Import the repo. `vercel.json` sets `public/` as the output directory with no build step. The prebuilt jars in `public/engines/` are committed.
+Import the repo. `vercel.json` sets `public/` as the output directory with no build step. The prebuilt jars in `public/engines/v-<hash>/` are committed; the folder name is a hash of their contents, so a changed jar always gets a new URL.
 
 ## Rebuilding the engines
 

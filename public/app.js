@@ -47,6 +47,7 @@
     var editor = null, fixtureEditor = null;
     var mocksSource = "", profiles = null, defaultFixtureText = "";
     var launcher = null;
+    var engineDir = "engines";
     var loadedEngines = {};
     var ENGINE_NAME = { "8x": "8.x (Rhino 1.7R4)", "9x": "9.x (Rhino 1.7.15)" };
 
@@ -641,10 +642,13 @@
         // First visit downloads the Java runtime (cached afterwards), so show progress.
         busy("Starting Java runtime (first visit can take ~30s)…");
         return cheerpjInit({ status: "none" })
-            .then(function () { return cheerpjRunLibrary("/app/engines/launcher.jar"); })
+            .then(function () { return cheerpjRunLibrary("/app/" + engineDir + "/launcher.jar"); })
             .then(function (lib) { return lib.vroconsole.Launcher; })
             .then(function (L) {
                 launcher = L;
+                return L.setBaseDir("/app/" + engineDir);
+            })
+            .then(function () {
                 return ensureEngine(state.version);
             })
             .then(function () {
@@ -668,8 +672,10 @@
     Promise.all([
         fetchText("engine/vro-mocks.js"),
         fetchText("engine/profiles.json"),
-        fetchText("engine/fixture.default.json")
+        fetchText("engine/fixture.default.json"),
+        fetchText("engine/engines.json")
     ]).then(function (texts) {
+        engineDir = JSON.parse(texts[3]).dir;
         mocksSource = texts[0];
         profiles = JSON.parse(texts[1]);
         defaultFixtureText = texts[2].replace(/\s+$/, "") + "\n";
