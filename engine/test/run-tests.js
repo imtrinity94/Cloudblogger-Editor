@@ -54,7 +54,7 @@ test("System.log of object prints [object Object]", both, "System.log({a:1})",
     r => r.logs[0] && r.logs[0].msg === "[object Object]" ? null : JSON.stringify(r.logs));
 test("action return value", both, "return a + b;", ok("5"), { inputs: [{ name: "a", value: "2" }, { name: "b", value: "3" }] });
 test("action line numbers match editor", both, "var x = 1;\nnull.foo;", r => !r.ok && r.error.line === 2 ? null : JSON.stringify(r.error));
-test("scriptable task rejects return", both, "var out = 5;\nreturn out;", err(/SyntaxError: invalid return/), { mode: "task" });
+test("scriptable task mode still rejects return (engine)", both, "var out = 5;\nreturn out;", err(/SyntaxError: invalid return/), { mode: "task" });
 test("scriptable task outputs", both, "var out = n * 2;", r => r.ok && r.outputs.out === "42" ? null : JSON.stringify(r),
     { mode: "task", inputs: [{ name: "n", value: "21" }], outputs: ["out"] });
 test("class shutter allows java.util", both, "var m = new java.util.HashMap(); m.put('k','v'); return m.get('k');", ok("v"));
@@ -66,7 +66,7 @@ test("for each (JS 1.7) works", both, "var s=0; for each (var v in [1,2,3]) s+=v
 test("E4X works", both, "var x = <vm><name>web-01</name></vm>; return x.name.toString();", ok("web-01"));
 test("console only on 9.x", both, "return typeof console;", r => r.ok && r.result === (r.languageVersion >= 200 ? "object" : "undefined") ? null : r.result);
 test("VcPlugin VMs", both, "return VcPlugin.getAllVirtualMachines().map(function(v){return v.name;}).join();",
-    ok("web-01,web-02,db-01,test-win-01,tpl-ubuntu-24"));
+    ok("web-01,web-02,db-01,test-win-01,app-01,tpl-ubuntu-24"));
 test("VcPlugin xpath filter", both, "return VcPlugin.getAllVirtualMachines(null, \"xpath:name[matches(.,'web.*')]\").length;", ok("2"));
 test("power on + wait task", both,
     "var vm = Server.findForType('VC:VirtualMachine', 'vcsa01.vmw.lab,vm-104');\n" +
@@ -114,6 +114,9 @@ test("System.getDateFromFormat (literal Z)", both,
     "var d = System.getDateFromFormat('2023-05-08T16:58:34Z', \"yyyy-MM-dd'T'HH:mm:ss'Z'\");\nreturn d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate() + ' ' + d.getHours();",
     ok("2023-5-8 16"));
 test("System.getDateFromFormat mismatch returns null", both, "return String(System.getDateFromFormat('nope', 'yyyy-MM-dd'));", ok("null"));
+test("Properties return value is shown in full", both,
+    "var p = new Properties(); p.put('cp', { network: 'pg-1' }); return p;",
+    r => r.ok && /Properties \{\n  cp: \{\n    network: "pg-1"/.test(r.result) ? null : JSON.stringify(r.result));
 test("thrown Error keeps name", both, "throw new TypeError('bad input');", err(/^TypeError: bad input$/));
 
 // ------------------------------------------------------------- feature matrix

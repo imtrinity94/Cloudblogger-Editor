@@ -13,11 +13,11 @@ Earlier versions of this project emulated vRO with the browser's own JavaScript 
 
 - **Syntax and built-ins come from the real parser and runtime.** Arrow functions fail on 8.x and work on 9.x. `class`, spread, default parameters, `?.` and `??` fail on both. `for (const x of ...)` is a syntax error on 9.x while `let`/`var` work. See the [measured feature matrix](docs/feature-matrix.md).
 - **Class shutter:** only `java.util.*` is reachable, which is the vRO default. `new java.io.File(...)` fails the way it does on a real server.
-- **Actions vs scriptable tasks.** An action is wrapped in a function, so `return` works and inputs are parameters. A scriptable task runs outside the root scope, so `return` gives `SyntaxError: invalid return`, and top-level variables are read back as outputs.
+- **Scripts run like an action.** They are wrapped in a function, so `return` gives the return value, and the Inputs tab supplies the parameters.
 - **Version-specific runtime.** 9.x enables `FEATURE_ENABLE_JAVA_MAP_ACCESS` (`map.key`) and a `console` object; 8.x has neither.
 - **Errors and line numbers come straight from Rhino.** They're labelled the way Orchestrator does: `(Dynamic Script Module name : myAction#3)` or `(Workflow:Test / Scriptable task (item1)#3)`.
 - **Runaway loops are stopped** by Rhino's instruction observer after 15 s.
-- **Serialization rules are flagged.** XML and function values used as task outputs get a note, because Orchestrator can't pass them between workflow elements.
+- **Serialization rules are flagged.** Returning an XML object or a function gets a note, because Orchestrator can't pass those between workflow elements.
 - **vCenter plug-in array conversion is reproduced.** Assigning `[]` to `spec.deviceChange` and then writing `spec.deviceChange[0]` is silently lost, while building the array first works. See [the post](https://cloudblogger.co.in/2022/04/03/javascript-to-java-conversion-limitation-in-vro/).
 
 ## Mocked vRO APIs
@@ -54,7 +54,7 @@ Import the repo. `vercel.json` sets `public/` as the output directory with no bu
 
 ```sh
 npm run build:engine   # needs git + JDK 11+; clones Rhino tags, compiles to Java 8 bytecode
-npm test               # 79 runtime/mock tests on a desktop JVM, same jars as the browser
+npm test               # 81 runtime/mock tests on a desktop JVM, same jars as the browser
 npm run matrix         # regenerates docs/feature-matrix.md
 ```
 

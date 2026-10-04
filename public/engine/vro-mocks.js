@@ -420,6 +420,19 @@
         vm.datastore = (v.datastores || []).map(function (id) { return byId[sdk.id + "," + id]; }).filter(Boolean);
         vm.network = (v.networks || []).map(function (id) { return byId[sdk.id + "," + id]; }).filter(Boolean);
         vm.snapshot = null;
+        (v.snapshots || []).forEach(function (sn) {
+            var snap = {
+                name: sn.name,
+                description: sn.description || "",
+                createTime: new Date(host.now() - (sn.ageDays || 0) * 86400000),
+                vm: vm,
+                snapshot: { value: "snapshot-" + (++uuidCounter) }
+            };
+            snap.toString = function () { return snap.name; };
+            vm.snapshot = vm.snapshot || { rootSnapshotList: [] };
+            vm.snapshot.rootSnapshotList.push(snap);
+            vm.snapshot.currentSnapshot = snap;
+        });
 
         function setPower(state) {
             return function () {
@@ -738,7 +751,13 @@
         if (t === "xml") return v.toXMLString();
         if (v instanceof Date) return v.toString();
         if (v.__vroType) return v.name !== undefined ? v.__vroType + "<" + v.name + ">" : String(v);
-        if (v instanceof Properties) return "Properties" + v.toString();
+        if (v instanceof Properties) {
+            var pk = v.keys(), pin = new Array(depth + 2).join("  ");
+            if (!pk.length) return "Properties {}";
+            return "Properties {\n" + pk.map(function (k) {
+                return pin + k + ": " + inspect(v.get(k), depth + 1);
+            }).join(",\n") + "\n" + new Array(depth + 1).join("  ") + "}";
+        }
         if (depth > 3) return Array.isArray(v) ? "[Array]" : "[Object]";
         if (Array.isArray(v)) {
             return "[" + v.map(function (x) { return inspect(x, depth + 1); }).join(", ") + "]";

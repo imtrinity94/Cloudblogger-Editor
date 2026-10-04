@@ -9,15 +9,13 @@
     "use strict";
 
     var ENGINE_LABEL = { "8x": "8.x · Rhino 1.7R4", "9x": "9.x · Rhino 1.7.15" };
-    var STORE_KEY = "cbe.state.v2";
+    var STORE_KEY = "cbe.state.v3";
 
     var state = load() || {
         version: "9x",
-        mode: "action",
-        sample: "hello",
+        sample: "rw-naming",
         code: null,
         inputs: [],
-        outputs: [],
         fixtureText: null
     };
 
@@ -28,8 +26,6 @@
         output: byId("output"),
         sidebar: byId("sidebar"),
         inputs: byId("inputs"),
-        outputs: byId("outputs"),
-        outputsCol: byId("outputsCol"),
         editorTitle: byId("editorTitle"),
         fixtureError: byId("fixtureError"),
         debugToggle: byId("debugToggle")
@@ -85,13 +81,7 @@
         return paint;
     }
 
-    var paintMode = bindSeg("modeSeg", "mode", onModeChange);
     bindSeg("versionSeg", "version");
-
-    function onModeChange() {
-        els.editorTitle.textContent = state.mode === "task" ? "Code · Scriptable task" : "Code · Action";
-        els.outputsCol.classList.toggle("disabled", state.mode !== "task");
-    }
 
     // --------------------------------------------------------- inputs/outputs
 
@@ -110,21 +100,8 @@
             row.querySelector(".rm").addEventListener("click", function () { state.inputs.splice(i, 1); renderIo(); save(); });
             els.inputs.appendChild(row);
         });
-        els.outputs.innerHTML = "";
-        state.outputs.forEach(function (name, i) {
-            var row = document.createElement("div");
-            row.className = "io-row";
-            row.innerHTML = '<input class="name value" spellcheck="false" placeholder="variable name">' +
-                '<button class="rm" title="Remove" aria-label="Remove output">×</button>';
-            var n = row.querySelector("input");
-            n.value = name;
-            n.addEventListener("input", function () { state.outputs[i] = n.value.trim(); save(); });
-            row.querySelector(".rm").addEventListener("click", function () { state.outputs.splice(i, 1); renderIo(); save(); });
-            els.outputs.appendChild(row);
-        });
     }
     byId("addInput").addEventListener("click", function () { state.inputs.push({ name: "", value: "" }); renderIo(); save(); });
-    byId("addOutput").addEventListener("click", function () { state.outputs.push(""); renderIo(); save(); });
 
     // ---------------------------------------------------------------- tabs
 
@@ -164,12 +141,6 @@
                 b.className = "nav-link";
                 b.dataset.id = s.id;
                 b.textContent = s.title;
-                if (s.mode === "task") {
-                    var t = document.createElement("span");
-                    t.className = "tag";
-                    t.textContent = "task";
-                    b.appendChild(t);
-                }
                 b.addEventListener("click", function () { applySample(s); });
                 els.sidebar.appendChild(b);
             });
@@ -193,13 +164,9 @@
 
     function applySample(s) {
         state.sample = s.id;
-        state.mode = s.mode || "action";
         state.inputs = (s.inputs || []).map(function (x) { return { name: x.name, value: x.value }; });
-        state.outputs = (s.outputs || []).slice();
         if (editor) editor.setValue(s.code);
         state.code = s.code;
-        paintMode();
-        onModeChange();
         renderIo();
         markSample();
         save();
@@ -225,9 +192,8 @@
             mocks: mocksSource,
             fixture: fixtureObject(),
             profile: profiles[engine],
-            mode: state.mode,
+            mode: "action",
             inputs: state.inputs.filter(function (i) { return i.name; }),
-            outputs: state.mode === "task" ? state.outputs.filter(Boolean) : [],
             timeoutMs: 15000
         });
     }
@@ -314,7 +280,7 @@
 
             if (res.ok) {
                 var notes = [];
-                if (state.mode !== "task" && res.resultType !== "undefined") {
+                if (res.resultType !== "undefined") {
                     log.appendChild(box("Return value · " + res.resultType, res.result));
                     var rn = serializationNote("the return value", res.resultType, true);
                     if (rn) notes.push(rn);
@@ -582,7 +548,6 @@
 
     renderSidebar();
     renderIo();
-    onModeChange();
 
     Promise.all([
         fetchText("engine/vro-mocks.js"),

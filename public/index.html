@@ -46,12 +46,6 @@
                         <button role="radio" data-value="9x" title="VCF Operations Orchestrator 9.0 — Rhino 1.7.15">9.x <small>Rhino 1.7.15</small></button>
                     </span>
                 </span>
-                <span class="field">Type
-                    <span class="seg" role="radiogroup" aria-label="Script type" id="modeSeg">
-                        <button role="radio" data-value="action" title="Action: wrapped in a function, return works">Action</button>
-                        <button role="radio" data-value="task" title="Scriptable task: no return, top-level vars are outputs">Scriptable task</button>
-                    </span>
-                </span>
             </div>
 
             <div class="splitter" id="splitter" title="Drag to resize"></div>
@@ -59,7 +53,7 @@
             <section class="panel" id="panel">
                 <div class="editor-toolbar tabs" role="tablist">
                     <button class="code-tab small active" role="tab" data-tab="output">Output</button>
-                    <button class="code-tab small" role="tab" data-tab="io">Inputs &amp; outputs</button>
+                    <button class="code-tab small" role="tab" data-tab="io">Inputs</button>
                     <button class="code-tab small" role="tab" data-tab="mocks">Mocks</button>
                     <button class="code-tab small" role="tab" data-tab="about">About</button>
                     <span class="spacer"></span>
@@ -77,11 +71,6 @@
                             <h3>Inputs <small>name = JavaScript expression (mocks are in scope)</small></h3>
                             <div id="inputs"></div>
                             <button class="link-btn" id="addInput">+ Add input</button>
-                        </div>
-                        <div class="io-col" id="outputsCol">
-                            <h3>Outputs <small>scriptable task variables to show after the run</small></h3>
-                            <div id="outputs"></div>
-                            <button class="link-btn" id="addOutput">+ Add output</button>
                         </div>
                     </div>
                 </div>
@@ -106,7 +95,7 @@
                         <ul>
                             <li>Language level: JavaScript 1.7 on 8.x, ES6 mode on 9.x, so syntax support is decided by the real parser.</li>
                             <li>Class shutter: only <code>java.util.*</code> is reachable from scripts, the vRO default.</li>
-                            <li>Actions are wrapped in a function (<code>return</code> works); scriptable tasks run outside the root scope (<code>return</code> is a syntax error).</li>
+                            <li>Scripts run like an action: wrapped in a function, so <code>return</code> gives the return value and inputs are parameters.</li>
                             <li>9.x enables Java Map property access (<code>map.key</code>) and a <code>console</code> object; 8.x has neither.</li>
                             <li>Error messages and line numbers come straight from Rhino, labelled like Orchestrator does.</li>
                         </ul>
