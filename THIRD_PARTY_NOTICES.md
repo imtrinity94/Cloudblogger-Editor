@@ -1,0 +1,41 @@
+# Third-party notices
+
+## Data-Center-Automation (Stefan Schnell)
+
+Parts of `public/engine/vro-mocks.js` (System helper methods, URL, File, FileReader,
+FileWriter, ZipWriter, ByteBuffer, MimeAttachment and Command) are adapted from the
+VCF Automation JavaScript emulation classes in
+<https://github.com/StSchnell/Data-Center-Automation>. They were changed to run without
+Java access inside this console's engine, limited to methods that exist in the real
+Orchestrator API, and adjusted to return what Orchestrator 9.1.1 returns.
+
+```
+MIT License
+
+Copyright (c) 2023 Stefan Schnell
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## Mozilla Rhino
+
+The engine jars in `public/engines/` are compiled from <https://github.com/mozilla/rhino>
+release tags `Rhino1_7R4_RELEASE`, `Rhino1_7_15_Release` and `Rhino1_9_1_Release`,
+licensed under the Mozilla Public License 2.0 (<https://www.mozilla.org/MPL/2.0/>).
+The source is used unmodified.

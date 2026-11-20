@@ -20,6 +20,7 @@
             timeoutMs: opts.timeoutMs || 10000,
             removeGlobals: profile.removeGlobals || [],
             enableFeatures: profile.enableFeatures || [],
+            flags: profile.flags || [],
             allowJava: opts.allowJava || [],
             inputs: opts.inputs || [],
             outputs: opts.outputs || [],

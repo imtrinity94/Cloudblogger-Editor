@@ -1,6 +1,6 @@
 {
   "name": "cloudblogger-editor",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "vRO / VCF Orchestrator script console running the real Rhino engines (1.7R4 for 8.x, 1.7.15 for 9.x) in the browser via CheerpJ.",
   "license": "MIT",

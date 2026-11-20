@@ -17,6 +17,7 @@ import org.mozilla.javascript.Script;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
 import org.mozilla.javascript.Undefined;
+import org.mozilla.javascript.WrapFactory;
 import org.mozilla.javascript.WrappedException;
 
 /**
@@ -103,6 +104,47 @@ public final class Runner {
         }
     }
 
+    /**
+     * Orchestrator 9.1.1's own wrapping of Java collections, measured on a real server:
+     * `new java.util.ArrayList()` is a JavaScript Array (no .add()), and
+     * `new java.util.HashMap()` is an Orchestrator Properties object.
+     * Enabled per profile with the "wrapJavaCollections" flag.
+     */
+    static final class VroWrapFactory extends WrapFactory {
+        Object convert(Context cx, Scriptable scope, Object obj) {
+            Scriptable top = ScriptableObject.getTopLevelScope(scope);
+            if (obj instanceof java.util.List) {
+                java.util.List<?> list = (java.util.List<?>) obj;
+                Object[] items = new Object[list.size()];
+                for (int i = 0; i < items.length; i++) items[i] = Context.javaToJS(list.get(i), top);
+                return cx.newArray(top, items);
+            }
+            if (obj instanceof java.util.Map) {
+                Object ctor = ScriptableObject.getProperty(top, "Properties");
+                if (!(ctor instanceof Function)) return null;
+                Scriptable props = ((Function) ctor).construct(cx, top, new Object[0]);
+                for (java.util.Map.Entry<?, ?> e : ((java.util.Map<?, ?>) obj).entrySet()) {
+                    ScriptableObject.callMethod(props, "put", new Object[] {
+                        Context.javaToJS(e.getKey(), top), Context.javaToJS(e.getValue(), top) });
+                }
+                return props;
+            }
+            return null;
+        }
+
+        @Override
+        public Object wrap(Context cx, Scriptable scope, Object obj, Class<?> staticType) {
+            Object c = convert(cx, scope, obj);
+            return c != null ? c : super.wrap(cx, scope, obj, staticType);
+        }
+
+        @Override
+        public Scriptable wrapNewObject(Context cx, Scriptable scope, Object obj) {
+            Object c = convert(cx, scope, obj);
+            return c instanceof Scriptable ? (Scriptable) c : super.wrapNewObject(cx, scope, obj);
+        }
+    }
+
     // ------------------------------------------------------------- host glue
 
     /** Log lines collected from the script (System.log & co. call into this). */
@@ -129,8 +171,14 @@ public final class Runner {
         return Context.toString(v);
     }
 
-    static ScriptableObject installHost(Context cx, Scriptable global, final LogSink sink, final long deadline) {
+    static ScriptableObject installHost(Context cx, Scriptable global, final LogSink sink, final long deadline,
+                                        String[] flags) {
         ScriptableObject host = (ScriptableObject) cx.newObject(global);
+
+        // Profile switches the mocks read, e.g. flags.console, flags.commandDisabled.
+        Scriptable flagObj = cx.newObject(global);
+        for (int i = 0; i < flags.length; i++) flagObj.put(flags[i], flagObj, Boolean.TRUE);
+        host.defineProperty("flags", flagObj, ScriptableObject.DONTENUM | ScriptableObject.READONLY);
 
         host.defineProperty("log", new HostFn() {
             Object invoke(Object[] a) {
@@ -217,6 +265,9 @@ public final class Runner {
         String[] shutterExtra = req.strArray("allowJava");
         Json.Arr inputs = req.arr("inputs");              // [{name, value(js expr), type}]
         String[] outputs = req.strArray("outputs");
+        String[] flags = req.strArray("flags");
+        boolean wrapCollections = false;
+        for (int i = 0; i < flags.length; i++) if ("wrapJavaCollections".equals(flags[i])) wrapCollections = true;
         java.util.Set<Integer> enabled = new java.util.HashSet<Integer>();
         Json.Arr feats = req.arr("enableFeatures");
         for (int i = 0; i < feats.size(); i++) {
@@ -237,11 +288,12 @@ public final class Runner {
         StringBuilder out = new StringBuilder(256);
         try {
             cx.setClassShutter(new VroShutter(shutterExtra));
+            if (wrapCollections) cx.setWrapFactory(new VroWrapFactory());
             // Java strings/numbers/booleans returned from java.util calls (map.get(...))
             // come back as JavaScript primitives, as they do in Orchestrator.
             cx.getWrapFactory().setJavaPrimitiveWrap(false);
             ScriptableObject global = cx.initStandardObjects();
-            installHost(cx, global, sink, deadline);
+            installHost(cx, global, sink, deadline, flags);
 
             for (int i = 0; i < removeGlobals.length; i++) {
                 global.delete(removeGlobals[i]);

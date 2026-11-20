@@ -2,13 +2,16 @@
 # Builds the browser engine jars into public/engines/.
 #
 #   rhino-1.7R4.jar   Rhino as shipped in Orchestrator 8.x   (tag Rhino1_7R4_RELEASE)
-#   rhino-1.7.15.jar  Rhino as shipped in Orchestrator 9.x   (tag Rhino1_7_15_Release)
+#   rhino-1.7.15.jar  Rhino as shipped in Orchestrator 9.0   (tag Rhino1_7_15_Release)
+#   rhino-1.9.1.jar   Rhino as shipped in Orchestrator 9.1.1 (tag Rhino1_9_1_Release, core + E4X)
 #   runner-8x.jar     vroconsole.Runner compiled against 1.7R4
 #   runner-9x.jar     vroconsole.Runner compiled against 1.7.15
+#   runner-91x.jar    vroconsole.Runner compiled against 1.9.1
 #   launcher.jar      vroconsole.Launcher (loads each engine in its own class loader)
 #
 # Rhino is compiled from the official GitHub release tags, so no Maven access is needed.
-# Everything targets Java 8 bytecode, which is what CheerpJ runs by default.
+# 1.7.x and the launcher target Java 8 bytecode; Rhino 1.9 needs Java 11, so the
+# 1.9.1 jar and its runner target Java 11 and the page starts CheerpJ's Java 11 runtime.
 #
 # Requires: git, a JDK 11+ (javac --release 8), jar.
 set -euo pipefail
@@ -56,10 +59,33 @@ build_rhino() { # <tag> <version>
   echo "built rhino-$ver.jar"
 }
 
-build_runner() { # <engineId> <rhinoVersion>
-  local id=$1 ver=$2 cls="$WORK/classes-runner-$1"
+# Rhino 1.8+ is a Gradle multi-module build; compile the core and E4X modules
+# into one jar (without module-info, so it loads from a plain class path).
+build_rhino19() { # <tag> <version>
+  local tag=$1 ver=$2 src="$WORK/rhino-$2" cls="$WORK/classes-rhino-$2"
+  if [ ! -d "$src" ]; then
+    git clone -q --depth 1 --branch "$tag" https://github.com/mozilla/rhino "$src"
+  fi
   rm -rf "$cls" && mkdir -p "$cls"
-  javac "${JAVAC_OPTS[@]}" -cp "$OUT/rhino-$ver.jar" -d "$cls" "$HERE"/java/vroconsole/*.java
+  find "$src/rhino/src/main/java" "$src/rhino-xml/src/main/java" -name '*.java' ! -name module-info.java \
+    | sort > "$WORK/files-$ver.txt"
+  javac -nowarn -encoding UTF-8 --release 11 -d "$cls" @"$WORK/files-$ver.txt"
+  # Resources: error messages plus the ServiceLoader entries that plug in RegExp and E4X.
+  (cd "$src/rhino/src/main/resources" && find . -type f -exec install -D -m 644 {} "$cls/{}" \;)
+  (cd "$src/rhino-xml/src/main/resources" && find . -type f -exec install -D -m 644 {} "$cls/{}" \;)
+  # Two modules both ship META-INF/services files with different names, so nothing clashes.
+  # Orchestrator 9.1.1 reports plain "Rhino 1.9.1" (no build date), so no Built-Date here.
+  local mf="$WORK/manifest-$ver.mf"
+  printf 'Implementation-Title: Mozilla Rhino\nImplementation-Version: %s\n' "$ver" > "$mf"
+  rm -f "$OUT/rhino-$ver.jar"
+  jar --create --file "$OUT/rhino-$ver.jar" --manifest "$mf" "${JAR_DATE[@]}" -C "$cls" .
+  echo "built rhino-$ver.jar"
+}
+
+build_runner() { # <engineId> <rhinoVersion> [javaRelease]
+  local id=$1 ver=$2 rel=${3:-8} cls="$WORK/classes-runner-$1"
+  rm -rf "$cls" && mkdir -p "$cls"
+  javac -nowarn -encoding UTF-8 --release "$rel" -cp "$OUT/rhino-$ver.jar" -d "$cls" "$HERE"/java/vroconsole/*.java
   rm -f "$OUT/runner-$id.jar"
   jar --create --file "$OUT/runner-$id.jar" "${JAR_DATE[@]}" -C "$cls" .
   echo "built runner-$id.jar"
@@ -67,8 +93,10 @@ build_runner() { # <engineId> <rhinoVersion>
 
 build_rhino Rhino1_7R4_RELEASE 1.7R4
 build_rhino Rhino1_7_15_Release 1.7.15
+build_rhino19 Rhino1_9_1_Release 1.9.1
 build_runner 8x 1.7R4
 build_runner 9x 1.7.15
+build_runner 91x 1.9.1 11
 
 cls="$WORK/classes-launcher"
 rm -rf "$cls" && mkdir -p "$cls"

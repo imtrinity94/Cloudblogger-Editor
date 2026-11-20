@@ -8,7 +8,9 @@
 (function () {
     "use strict";
 
-    var ENGINE_LABEL = { "8x": "8.x · Rhino 1.7R4", "9x": "9.x · Rhino 1.7.15" };
+    var ENGINES = ["8x", "9x", "91x"];
+    var ENGINE_LABEL = { "8x": "8.x · Rhino 1.7R4", "9x": "9.0 · Rhino 1.7.15", "91x": "9.1 · Rhino 1.9.1" };
+    var ENGINE_SHORT = { "8x": "8.x", "9x": "9.0", "91x": "9.1" };
     var STORE_KEY = "cbe.state.v3";
     var MY_KEY = "cbe.myscripts.v1";
 
@@ -49,7 +51,7 @@
     var launcher = null;
     var engineDir = "engines";
     var loadedEngines = {};
-    var ENGINE_NAME = { "8x": "8.x (Rhino 1.7R4)", "9x": "9.x (Rhino 1.7.15)" };
+    var ENGINE_NAME = { "8x": "8.x (Rhino 1.7R4)", "9x": "9.0 (Rhino 1.7.15)", "91x": "9.1 (Rhino 1.9.1)" };
 
     // Shows elapsed seconds while something slow is happening.
     var tickTimer = null;
@@ -362,7 +364,7 @@
     }
 
     els.runBtn.addEventListener("click", function () { run([state.version]); });
-    els.runBothBtn.addEventListener("click", function () { run(["8x", "9x"]); });
+    els.runBothBtn.addEventListener("click", function () { run(ENGINES); });
 
     // ------------------------------------------------------------ rendering
 
@@ -384,7 +386,7 @@
 
             var head = el("div", "run-head");
             head.appendChild(el("span", "cbe-badge " + (res.ok ? "ok" : "fail"), res.ok ? "completed" : "failed"));
-            head.appendChild(el("span", "", r.engine === "8x" ? "8.x" : "9.x"));
+            head.appendChild(el("span", "", ENGINE_SHORT[r.engine] || r.engine));
             if (res.engineVersion) head.appendChild(el("span", "", "· " + res.engineVersion));
             if (res.durationMs !== undefined) head.appendChild(el("span", "", "· " + res.durationMs + " ms"));
             col.appendChild(head);
@@ -649,7 +651,7 @@
                     save();
                 });
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function () { run([state.version]); });
-                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter, function () { run(["8x", "9x"]); });
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter, function () { run(ENGINES); });
                 // F11-style toggle that works while typing in the editor.
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF, function () {
                     setEnlarged(!document.body.classList.contains("cbe-fullscreen"));
@@ -692,7 +694,8 @@
         }
         // First visit downloads the Java runtime (cached afterwards), so show progress.
         busy("Starting Java runtime (first visit can take ~30s)…");
-        return cheerpjInit({ status: "none" })
+        // Java 11 runtime: Rhino 1.9.1 (Orchestrator 9.1) needs it; the 1.7 engines run on it unchanged.
+        return cheerpjInit({ status: "none", version: 11 })
             .then(function () { return cheerpjRunLibrary("/app/" + engineDir + "/launcher.jar"); })
             .then(function (lib) { return lib.vroconsole.Launcher; })
             .then(function (L) {

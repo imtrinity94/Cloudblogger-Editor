@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Cloudblogger Editor</title>
-    <meta name="description" content="Run vRO / VCF Orchestrator JavaScript on the real Rhino engines (1.7R4 for 8.x, 1.7.15 for 9.x) in your browser, with mocked vRO APIs.">
+    <meta name="description" content="Run vRO / VCF Orchestrator JavaScript on the real Rhino engines (1.7R4 for 8.x, 1.7.15 for 9.0, 1.9.1 for 9.1) in your browser, with mocked vRO APIs.">
     <link rel="stylesheet" href="https://unpkg.com/@cds/core/global.min.css">
     <link id="clarity-theme-link" rel="stylesheet" href="https://unpkg.com/@cds/core/styles/theme.dark.min.css">
     <link id="clarity-ui-link" rel="stylesheet" href="https://unpkg.com/@clr/ui/clr-ui.min.css">
@@ -12,7 +12,7 @@
 </head>
 <body cds-theme="dark">
     <div class="cbe-banner" id="banner">
-        Aria Automation / VCF Orchestrator code editor running the real Rhino engines (8.x: 1.7R4, 9.x: 1.7.15) with simulated vRO classes for testing and learning.
+        Aria Automation / VCF Orchestrator code editor running the real Rhino engines (8.x: 1.7R4, 9.0: 1.7.15, 9.1: 1.9.1) with simulated vRO classes for testing and learning.
         <a href="https://github.com/imtrinity94/Cloudblogger-Editor" target="_blank" rel="noopener" title="View on GitHub">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
         </a>
@@ -36,7 +36,7 @@
             <div class="cbe-toolbar">
                 <button class="cbe-tab active" id="editorTitle">Code</button>
                 <span class="cbe-spacer"></span>
-                <span class="cbe-hint">Ctrl+Enter to run · Ctrl+Shift+Enter to run on both</span>
+                <span class="cbe-hint">Ctrl+Enter to run · Ctrl+Shift+Enter to run on all</span>
                 <button class="cbe-icon-btn" id="enlargeBtn" title="Enlarge to full screen (Esc to exit)" aria-label="Enlarge editor" aria-pressed="false">
                     <svg class="ico-enlarge" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
                     <svg class="ico-shrink" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -47,11 +47,12 @@
 
             <div class="cbe-runrow">
                 <button class="cbe-btn primary" id="runBtn" disabled><span style="font-size: 12px;">▶</span> Run</button>
-                <button class="cbe-btn" id="runBothBtn" disabled>Run on both</button>
+                <button class="cbe-btn" id="runBothBtn" disabled title="Run on 8.x, 9.0 and 9.1 side by side (Ctrl+Shift+Enter)">Run on all</button>
                 <span class="cbe-field">Orchestrator
                     <span class="cbe-seg" role="radiogroup" aria-label="Orchestrator version" id="versionSeg">
                         <button role="radio" data-value="8x" title="Aria Automation Orchestrator 8.x — Rhino 1.7R4">8.x <small>Rhino 1.7R4</small></button>
-                        <button role="radio" data-value="9x" title="VCF Operations Orchestrator 9.0 — Rhino 1.7.15">9.x <small>Rhino 1.7.15</small></button>
+                        <button role="radio" data-value="9x" title="VCF Operations Orchestrator 9.0 — Rhino 1.7.15">9.0 <small>Rhino 1.7.15</small></button>
+                        <button role="radio" data-value="91x" title="VCF Operations Orchestrator 9.1.1 — Rhino 1.9.1">9.1 <small>Rhino 1.9.1</small></button>
                     </span>
                 </span>
             </div>
@@ -97,19 +98,25 @@
                 <div class="cbe-tab-body" data-tab="about">
                     <div class="about">
                         <p><strong>This is not an emulator.</strong> Your script runs on the actual Mozilla Rhino builds that Orchestrator ships:
-                            <strong>1.7R4</strong> for 8.x and <strong>1.7.15</strong> for 9.x, compiled from the official release tags and executed in a
+                            <strong>1.7R4</strong> for 8.x, <strong>1.7.15</strong> for 9.0 and <strong>1.9.1</strong> for 9.1, compiled from the official release tags and executed in a
                             WebAssembly JVM (<a href="https://cheerpj.com" target="_blank" rel="noopener">CheerpJ</a>) inside your browser. Nothing is sent to a server.</p>
                         <p>Orchestrator's own restrictions are applied on top:</p>
                         <ul>
-                            <li>Language level: JavaScript 1.7 on 8.x, ES6 mode on 9.x, so syntax support is decided by the real parser.</li>
+                            <li>Language level: JavaScript 1.7 on 8.x, ES6 mode on 9.0 and 9.1, so syntax support is decided by the real parser.</li>
                             <li>Class shutter: only <code>java.util.*</code> is reachable from scripts, the vRO default.</li>
                             <li>Scripts run like an action: wrapped in a function, so <code>return</code> gives the return value and inputs are parameters.</li>
-                            <li>9.x enables Java Map property access (<code>map.key</code>) and a <code>console</code> object; 8.x has neither.</li>
+                            <li>9.0 enables Java Map property access (<code>map.key</code>) and a <code>console</code> object; 8.x has neither.</li>
+                            <li>9.1 copies a real 9.1.1 server: <code>java.util.ArrayList</code> becomes a JavaScript array, <code>java.util.HashMap</code> becomes <code>Properties</code>,
+                                there is no <code>console</code>, <code>Command.execute</code> is disabled and file reads outside the allowed folders are denied.
+                                All 58 language probes give the same result as the server.</li>
                             <li>Error messages and line numbers come straight from Rhino, labelled like Orchestrator does.</li>
                         </ul>
                         <p><strong>What is mocked:</strong> <code>System</code>, <code>Server</code>, <code>VcPlugin</code> and VC objects, <code>RESTHost</code>/<code>RESTHostManager</code>,
-                            <code>Properties</code>, <code>LockingSystem</code>, <code>File</code>, <code>MimeAttachment</code> and mocked actions via <code>System.getModule</code>.
-                            They read the editable inventory in the Mocks tab and never touch real infrastructure.</p>
+                            <code>Properties</code>, <code>LockingSystem</code>, <code>URL</code>, <code>File</code>/<code>FileReader</code>/<code>FileWriter</code> (in-memory),
+                            <code>ZipWriter</code>, <code>ByteBuffer</code>, <code>MimeAttachment</code>, <code>Command</code> and mocked actions via <code>System.getModule</code>.
+                            They read the editable inventory in the Mocks tab and never touch real infrastructure. <code>System</code> formatting and path helpers return
+                            exactly what a 9.1.1 server returns. Several core classes started from
+                            <a href="https://github.com/StSchnell/Data-Center-Automation" target="_blank" rel="noopener">Stefan Schnell's VCF Automation emulator</a> (MIT).</p>
                         <p>Feature support measured on these engines: <a href="https://github.com/imtrinity94/Cloudblogger-Editor/blob/main/docs/feature-matrix.md" target="_blank" rel="noopener">feature matrix</a>.
                             Background: <a href="https://cloudblogger.co.in/2025/11/23/orchestrator-rhino-engine-8-x-vs-9-x-comprehensive-guide-to-modern-javascript-in-vro/" target="_blank" rel="noopener">Orchestrator Rhino Engine 8.x vs 9.x</a>.</p>
                         <p class="muted">Not affiliated with Broadcom or VMware. CheerpJ is used under its Community license; Rhino is MPL 2.0.</p>

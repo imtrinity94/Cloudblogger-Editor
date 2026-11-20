@@ -21,7 +21,7 @@
         (async function () {
             try {
                 log("cheerpjInit…");
-                await cheerpjInit({ status: "default" });
+                await cheerpjInit({ status: "default", version: 11 });
                 log("runLibrary…");
                 var dir = JSON.parse(await (await fetch("engine/engines.json", { cache: "no-cache" })).text()).dir;
                 log("engine dir: " + dir);

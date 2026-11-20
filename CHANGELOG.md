@@ -1,0 +1,51 @@
+# Changelog
+
+All notable changes to Cloudblogger Editor. Newest first.
+
+## 2.1.0 — 2026-11-20
+
+### Added
+- **Orchestrator 9.1 profile on Rhino 1.9.1**, the engine a real VCF Operations Orchestrator 9.1.1 reports. Built from the `Rhino1_9_1_Release` tag (core plus E4X) as Java 11 bytecode; the page now starts CheerpJ's Java 11 runtime, which the 1.7 engines also run on.
+- The 9.1 profile copies behaviour measured on Orchestrator 9.1.1 (build 25643527): language version 200 in interpreted mode, `java.util.ArrayList` turns into a JavaScript array, `java.util.HashMap` turns into `Properties`, no `console` object, `Command.execute` disabled with the server's message, and file reads outside `/var/run/vco` and the temp directory denied with the server's message.
+- All 58 language probes give the same result on the 9.1 profile as on the real 9.1.1 server. The feature matrix has a "9.1.1 server" column and the test suite fails on any difference.
+- Core classes ported from Stefan Schnell's VCF Automation emulator (MIT), limited to methods in the real API: the full `System` helper set (formatting, version compare, path helpers, object helpers, temp files, DNS helpers backed by the mock inventory, custom events), `URL`, `File`/`FileReader`/`FileWriter` on an in-memory file system, `ZipWriter`, `ByteBuffer` and `MimeAttachment`.
+- "Run on all" runs a script on 8.x, 9.0 and 9.1 side by side.
+- Samples: "What changed in 9.1.1" and "System utilities (formatting)".
+- `THIRD_PARTY_NOTICES.md` with the MIT notice for the ported classes and the Rhino licence.
+
+### Changed
+- `System.getDateFromFormat` throws `InternalError: Unable to parse date [...] using pattern : ...` on a mismatch, as the server does, instead of returning null.
+- `File.write` replaces the file's content (it appended before); `ByteBuffer.length` is a number attribute, not a method.
+- `System.getTempDirectory()` returns `/usr/lib/vco/app-server/temp`; `formatDate` also handles `EEE`, `EEEE`, `MMMM`, `a`, `h`, `k`, `K` and `z`.
+- `Properties` entries are readable as properties (`p.key`) as well as with `get()`.
+- Removed `System.appendToArray`, which is not part of the Orchestrator API.
+- The engine launcher sets each engine's class loader as the thread context loader, which Rhino 1.9 needs to find its RegExp and E4X implementations.
+- "9.x" is now labelled "9.0" in the version picker.
+
+## 2.0.4 — 2026-10-04
+- Close button on the top info bar (remembered in the browser).
+- Enlarge button: full-screen editor with the run controls and output (Esc to exit).
+
+## 2.0.3 — 2026-10-04
+- Fixed runs hanging in the browser: engine jars are built reproducibly, served from a content-hashed folder and cached as immutable, so cached byte ranges can no longer mix two versions of a jar.
+- The engine compiles the mock library once and reuses it; engine calls time out with a clear message.
+- Engines load on demand with a start-up progress counter; `debug.html` reports each loading step.
+- The default sample loads with its inputs on a first visit.
+
+## 2.0.2 — 2026-10-04
+- Fixed Clarity CSS class clashes that stacked the layout vertically in dark mode.
+- My scripts: new, save and delete your own scripts in the browser.
+
+## 2.0.1 — 2026-10-04
+- Restored the original Clarity look (banner, header, left navigation, Code tab, blue-on-dark output) with one font across the run row.
+- Removed the Action / Scriptable task switch: scripts always run as an action.
+- Real-world sample scripts (naming, snapshot report, compliance audit, IPAM, REST retry, capacity, VCFA subscription, request validation).
+
+## 2.0.0 — 2026-10-04
+- Scripts run on the real Rhino engines in the browser through CheerpJ: 1.7R4 for Orchestrator 8.x and 1.7.15 for 9.x, compiled from the official release tags.
+- Orchestrator restrictions applied on top: `java.util.*`-only class shutter, action wrapping, per-version language level and Map access, runaway-loop timeout, Orchestrator-style error labels.
+- Mocks for System, Server (configuration and resource elements), VcPlugin with VM tasks, RESTHost with canned routes, Properties and LockingSystem, driven by an editable inventory.
+- Measured feature matrix and a desktop-JVM test suite.
+
+## 1.x — 2025-05
+- First emulator: the browser's own JavaScript engine with regex checks for ES5.1 and simulated vRO classes.

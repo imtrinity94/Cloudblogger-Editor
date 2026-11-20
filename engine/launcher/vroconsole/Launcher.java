@@ -15,11 +15,13 @@ import java.util.Map;
  * This class itself has no Rhino dependency.
  *
  *   Launcher.run("8x", requestJson)  -> Rhino 1.7R4  (Orchestrator 8.x)
- *   Launcher.run("9x", requestJson)  -> Rhino 1.7.15 (Orchestrator 9.x)
+ *   Launcher.run("9x", requestJson)  -> Rhino 1.7.15 (Orchestrator 9.0)
+ *   Launcher.run("91x", requestJson) -> Rhino 1.9.1  (Orchestrator 9.1.1; needs a Java 11 runtime)
  */
 public final class Launcher {
 
     private static final Map<String, Method> ENGINES = new HashMap<String, Method>();
+    private static final Map<String, ClassLoader> LOADERS = new HashMap<String, ClassLoader>();
 
     /** Folder holding the jars; "/app/engines" under CheerpJ, overridable for desktop tests. */
     private static String baseDir = "/app/engines";
@@ -33,6 +35,7 @@ public final class Launcher {
     private static String rhinoJar(String engine) {
         if ("8x".equals(engine)) return "rhino-1.7R4.jar";
         if ("9x".equals(engine)) return "rhino-1.7.15.jar";
+        if ("91x".equals(engine)) return "rhino-1.9.1.jar";
         throw new IllegalArgumentException("unknown engine " + engine);
     }
 
@@ -48,7 +51,25 @@ public final class Launcher {
         Class<?> runner = Class.forName("vroconsole.Runner", true, cl);
         m = runner.getMethod("run", String.class);
         ENGINES.put(engine, m);
+        LOADERS.put(engine, cl);
         return m;
+    }
+
+    /**
+     * Calls the engine with its own class loader as the thread's context loader.
+     * Rhino 1.9 finds its RegExp and E4X implementations through ServiceLoader,
+     * which looks in the context loader; without this, `XML` is not defined.
+     */
+    private static Object call(String engine, String requestJson) throws Exception {
+        Method m = engine(engine);
+        Thread t = Thread.currentThread();
+        ClassLoader previous = t.getContextClassLoader();
+        t.setContextClassLoader(LOADERS.get(engine));
+        try {
+            return m.invoke(null, requestJson);
+        } finally {
+            t.setContextClassLoader(previous);
+        }
     }
 
     public static String ping() {
@@ -87,7 +108,7 @@ public final class Launcher {
     public static String warm(String engine) {
         try {
             // A tiny run, so Rhino's classes are loaded and compiled before the user's first script.
-            engine(engine).invoke(null, "{\"code\":\"return 1\"}");
+            call(engine, "{\"code\":\"return 1\"}");
             return "ok";
         } catch (Throwable t) {
             return "error: " + t;
@@ -96,7 +117,7 @@ public final class Launcher {
 
     public static String run(String engine, String requestJson) {
         try {
-            return (String) engine(engine).invoke(null, requestJson);
+            return (String) call(engine, requestJson);
         } catch (Throwable t) {
             Throwable c = t.getCause() != null ? t.getCause() : t;
             String msg = String.valueOf(c);

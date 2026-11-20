@@ -5,15 +5,28 @@
     "engine": "8x",
     "languageVersion": 170,
     "enableFeatures": [],
+    "flags": [],
     "removeGlobals": []
   },
   "9x": {
-    "label": "Orchestrator 9.x",
+    "label": "Orchestrator 9.0",
     "detail": "VCF Operations Orchestrator 9.0 - Rhino 1.7.15",
     "engine": "9x",
     "languageVersion": 200,
     "enableFeatures": [21],
-    "enableFeaturesNote": "21 = Context.FEATURE_ENABLE_JAVA_MAP_ACCESS: java.util.Map entries readable as properties (map.key), as in Orchestrator 9.x",
+    "enableFeaturesNote": "21 = Context.FEATURE_ENABLE_JAVA_MAP_ACCESS: java.util.Map entries readable as properties (map.key)",
+    "flags": ["console"],
+    "flagsNote": "console: per the cloudblogger 8.x vs 9.x post (not re-measured on a 9.0 server)",
+    "removeGlobals": []
+  },
+  "91x": {
+    "label": "Orchestrator 9.1",
+    "detail": "VCF Operations Orchestrator 9.1.1 - Rhino 1.9.1",
+    "engine": "91x",
+    "languageVersion": 200,
+    "enableFeatures": [],
+    "flags": ["wrapJavaCollections", "commandDisabled", "fileAccessRules"],
+    "flagsNote": "Measured on Orchestrator 9.1.1 build 25643527: language version 200, interpreted, Map-access feature off, java.util.ArrayList -> JS Array, java.util.HashMap -> Properties, no console object, Command.execute disabled, file reads outside allowed folders denied",
     "removeGlobals": []
   }
 }

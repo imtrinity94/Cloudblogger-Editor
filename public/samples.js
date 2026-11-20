@@ -108,7 +108,7 @@ window.VRO_SAMPLES = [
             {
                 id: "rw-modern-9x",
                 title: "Snapshot report in 9.x syntax",
-                code: "// Same idea as the snapshot report, written with 9.x features.\n// Run on both: 8.x stops at the first arrow function.\nconst now = System.getCurrentTime();\nconst ageDays = snap => Math.floor((now - snap.createTime.getTime()) / 86400000);\n\nconst old = VcPlugin.getAllVirtualMachines()\n    .filter(vm => vm.snapshot)\n    .flatMap(vm => vm.snapshot.rootSnapshotList.map(s => ({ vm: vm.name, snap: s.name, age: ageDays(s) })))\n    .filter(r => r.age > limit);\n\nold.forEach(r => console.log(`${r.vm}: ${r.snap} (${r.age} days)`));\nreturn Object.fromEntries(old.map(r => [r.vm, r.age]));\n",
+                code: "// Same idea as the snapshot report, written with 9.x features.\n// Run on all: 8.x stops at the first arrow function; 9.0 and 9.1 run it.\n// (No console.log: 9.1.1 has no console object, so it logs with System.log.)\nconst now = System.getCurrentTime();\nconst ageDays = snap => Math.floor((now - snap.createTime.getTime()) / 86400000);\n\nconst old = VcPlugin.getAllVirtualMachines()\n    .filter(vm => vm.snapshot)\n    .flatMap(vm => vm.snapshot.rootSnapshotList.map(s => ({ vm: vm.name, snap: s.name, age: ageDays(s) })))\n    .filter(r => r.age > limit);\n\nold.forEach(r => System.log(`${r.vm}: ${r.snap} (${r.age} days)`));\nreturn Object.fromEntries(old.map(r => [r.vm, r.age]));\n",
                 inputs: [
                     {
                         name: "limit",
@@ -220,6 +220,11 @@ window.VRO_SAMPLES = [
                 id: "mock-action",
                 title: "Call a mocked action",
                 code: "// Define your own actions under Mocks > actions.\nvar s = System.getModule(\"com.example.utils\").toUpperSnake(\"vmPowerState\");\nreturn s;\n"
+            },
+            {
+                id: "core-utils",
+                title: "System utilities (formatting)",
+                code: "// Formatting helpers; outputs match a real 9.1.1 server.\nSystem.log(System.formatBinaryValue(5368709120));          // 5.0G\nSystem.log(System.formatDuration(93784005, true, true));    // 1d 02h 03m 04.005s\nSystem.log(System.formatNumber(1234567.891, \"#,##0.00\"));  // 1,234,567.89\nSystem.log(System.compareVersionNumber(\"1.2.10\", \"1.2.9\")); // 3 (third part differs)\nSystem.log(System.extractFileNameWithoutExtension(\"/x/report.final.csv\"));\nSystem.log(System.formatDate(new Date(), \"EEE, d MMM yyyy HH:mm:ss Z\"));\nvar url = new URL(\"https://ipam.vmw.lab/api\");\nurl.addPath(\"/networks\");\nurl.addParameter(\"name\", \"app 1010\");\nreturn url.url;\n"
             }
         ]
     },
@@ -229,12 +234,17 @@ window.VRO_SAMPLES = [
             {
                 id: "engine-info",
                 title: "Which engine am I on?",
-                code: "// Run this on 8.x and 9.x (or use Run on both).\nSystem.log(typeof console === \"undefined\" ? \"no console object (8.x)\" : \"console exists (9.x)\");\ntry {\n    eval(\"var f = (a) => a * 2;\");\n    System.log(\"Arrow functions: supported\");\n} catch (e) {\n    System.log(\"Arrow functions: \" + e.message);\n}\n"
+                code: "// Run this with Run on all to compare the three engines.\nSystem.log(typeof console === \"undefined\" ? \"no console object (8.x and 9.1.1)\" : \"console exists (9.0)\");\ntry {\n    eval(\"var f = (a) => a * 2;\");\n    System.log(\"Arrow functions: supported\");\n} catch (e) {\n    System.log(\"Arrow functions: \" + e.message);\n}\ntry {\n    eval(\"var o = {}; var v = o?.a ?? 1;\");\n    System.log(\"Optional chaining and ??: supported\");\n} catch (e) {\n    System.log(\"Optional chaining and ??: \" + e.message);\n}\n"
+            },
+            {
+                id: "what-changed-91",
+                title: "What changed in 9.1.1",
+                code: "// Behaviour measured on a real Orchestrator 9.1.1. Pick 9.1, then compare with 9.0.\nvar list = new java.util.ArrayList();\nSystem.log(\"ArrayList is a JS array: \" + Array.isArray(list) + \" (add() is \" + typeof list.add + \")\");\n\nvar map = new java.util.HashMap();\nSystem.log(\"HashMap class: \" + System.getObjectClassName(map));\n\ntry {\n    new Command(\"echo hi\").execute(true);\n    System.log(\"Command ran (mocked; nothing executes in the browser)\");\n} catch (e) {\n    System.warn(\"Command: \" + e.message);\n}\n\ntry {\n    var r = new FileReader(\"/etc/hosts\");\n    r.open();\n} catch (e) {\n    System.warn(\"FileReader: \" + e.message);\n}\n\nvar tmp = System.appendToPath(System.getTempDirectory(), \"report.txt\");\nvar f = new File(tmp);\nf.write(\"first\");\nf.write(\"second\");          // write() replaces the content\nvar reader = new FileReader(tmp);\nreader.open();\nSystem.log(\"File now holds: \" + reader.readAll());\nreader.close();\nreturn System.formatBinaryValue(4718592) + \", v\" + System.compareVersionNumber(\"9.1.1\", \"9.0.0\");\n"
             },
             {
                 id: "modern-js",
                 title: "9.x modern JavaScript",
-                code: "// Runs on 9.x; fails to parse on 8.x.\nconst vms = VcPlugin.getAllVirtualMachines();\nconst on = vms.filter(vm => vm.runtime.powerState.value === \"poweredOn\");\nconst byName = new Map(on.map(vm => [vm.name, vm.config.hardware.numCPU]));\n// `for (const [k, v] of map)` is a SyntaxError on Rhino 1.7.15 — use var:\nfor (var [name, cpu] of byName) {\n    console.log(`${name}: ${cpu} vCPU`);\n}\n// [...byName.keys()] would be a SyntaxError: spread is still not supported in 9.x\nreturn Array.from(byName.keys());\n"
+                code: "// Runs on 9.x; fails to parse on 8.x.\nconst vms = VcPlugin.getAllVirtualMachines();\nconst on = vms.filter(vm => vm.runtime.powerState.value === \"poweredOn\");\nconst byName = new Map(on.map(vm => [vm.name, vm.config.hardware.numCPU]));\n// `for (const [k, v] of map)` is a SyntaxError on Rhino 1.7.15 — use var:\nfor (var [name, cpu] of byName) {\n    System.log(`${name}: ${cpu} vCPU`);\n}\n// [...byName.keys()] would be a SyntaxError: spread is still not supported in 9.x\nreturn Array.from(byName.keys());\n"
             },
             {
                 id: "java-util",
