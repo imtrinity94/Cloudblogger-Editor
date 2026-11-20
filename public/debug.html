@@ -21,7 +21,9 @@
         (async function () {
             try {
                 log("cheerpjInit…");
-                await cheerpjInit({ status: "default", version: 11 });
+                var jv = Number(new URLSearchParams(location.search).get("jv") || 11);
+                log("Java runtime requested: " + jv);
+                await cheerpjInit({ status: "default", version: jv });
                 log("runLibrary…");
                 var dir = JSON.parse(await (await fetch("engine/engines.json", { cache: "no-cache" })).text()).dir;
                 log("engine dir: " + dir);
