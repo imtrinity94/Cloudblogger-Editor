@@ -53,6 +53,7 @@
         return fetchJson("catalog/catalog.json").then(function (ix) {
             index = ix;
             base = "catalog/" + ix.dir + "/";
+            stubs().then(function (t) { stubMap = window.VroRequest.parseCatalog(t); });
             return ix;
         });
     }
@@ -78,6 +79,17 @@
         if (!stubsText) stubsText = fetchText(base + "stubs.txt");
         return stubsText;
     }
+
+    // Class data for the engine: sent per engine, only classes it has not had yet.
+    var stubMap = null;
+    var sentTo = {};
+    function catalogFor(engine, names) {
+        if (!stubMap || !names.length) return "";
+        sentTo[engine] = sentTo[engine] || {};
+        return window.VroRequest.catalogLinesFor(names, stubMap, sentTo[engine]);
+    }
+    // A failed engine call may not have stored the lines; send them again next time.
+    function forgetSent(engine) { sentTo[engine] = {}; }
 
     function referencedClasses(texts) {
         if (!index) return [];
@@ -482,7 +494,8 @@
         },
         attachMonaco: attachMonaco,
         referencedClasses: referencedClasses,
-        stubsPath: function () { return index ? "/app/" + base + "stubs.txt" : ""; },
+        catalogFor: catalogFor,
+        forgetSent: forgetSent,
         openClass: openClass,
         ready: function () { return !!index; }
     };

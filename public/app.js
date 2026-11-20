@@ -301,10 +301,11 @@
     function buildRequest(engine) {
         var code = editor.getValue();
         var inputs = state.inputs.filter(function (i) { return i.name; });
+        var stubGlobals = window.CbeApi.referencedClasses([code].concat(inputs.map(function (i) { return i.value; })));
         return window.VroRequest.buildRequest({
             code: code,
-            catalogPath: window.CbeApi.stubsPath(),
-            stubGlobals: window.CbeApi.referencedClasses([code].concat(inputs.map(function (i) { return i.value; }))),
+            stubGlobals: stubGlobals,
+            catalogLines: window.CbeApi.catalogFor(engine, stubGlobals),
             mocks: mocksSource,
             fixture: fixtureObject(),
             profile: profiles[engine],
@@ -332,6 +333,7 @@
             try { return JSON.parse(text); }
             catch (e) { return { ok: false, logs: [], error: { name: "EngineError", message: "Unreadable engine response: " + text } }; }
         }, function (err) {
+            window.CbeApi.forgetSent(engine);
             return { ok: false, logs: [], error: { name: "EngineError", message: String(err && err.message || err) } };
         });
     }

@@ -14,9 +14,9 @@ const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "../..");
 const PUB = path.join(ROOT, "public");
-const { buildRequest, referencedClasses } = require(path.join(PUB, "engine/request.js"));
+const { buildRequest, referencedClasses, parseCatalog, catalogLinesFor } = require(path.join(PUB, "engine/request.js"));
 const catalog = JSON.parse(fs.readFileSync(path.join(PUB, "catalog/catalog.json"), "utf8"));
-const catalogPath = path.join(PUB, "catalog", catalog.dir, "stubs.txt");
+const catalogMap = parseCatalog(fs.readFileSync(path.join(PUB, "catalog", catalog.dir, "stubs.txt"), "utf8"));
 const mocks = fs.readFileSync(path.join(PUB, "engine/vro-mocks.js"), "utf8");
 const fixture = JSON.parse(fs.readFileSync(path.join(PUB, "engine/fixture.default.json"), "utf8"));
 const profiles = JSON.parse(fs.readFileSync(path.join(PUB, "engine/profiles.json"), "utf8"));
@@ -35,9 +35,10 @@ function runBatch(jobs) {
 function job(engine, code, extra) {
     const texts = [code].concat(((extra && extra.inputs) || []).map(i => i.value));
     const stubGlobals = referencedClasses(texts, catalog.classes, catalog.builtins);
+    const catalogLines = catalogLinesFor(stubGlobals, catalogMap);
     return {
         engine,
-        request: buildRequest(Object.assign({ code, mocks, fixture, profile: profiles[engine], timeoutMs: 5000, catalogPath, stubGlobals }, extra || {}))
+        request: buildRequest(Object.assign({ code, mocks, fixture, profile: profiles[engine], timeoutMs: 5000, catalogLines, stubGlobals }, extra || {}))
     };
 }
 

@@ -37,7 +37,7 @@ The catalog is generated, not hand-edited:
 npm run build:catalog -- ../modern-vroapi   # reads vro-doc-site/src/data/plugins/*.json
 ```
 
-It writes `public/catalog/catalog.json` and a content-hashed `public/catalog/v-<hash>/` with per-plug-in details, `.d.ts` files and `stubs.txt` (the compact form the engine reads, only for classes a script touches).
+It writes `public/catalog/catalog.json` and a content-hashed `public/catalog/v-<hash>/` with per-plug-in details, `.d.ts` files and `stubs.txt`. The page sends the engine only the classes a script can reach (the names it uses plus every type reachable from them), once per engine.
 
 ## Mocked vRO APIs
 

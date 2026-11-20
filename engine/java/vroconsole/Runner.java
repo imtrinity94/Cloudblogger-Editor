@@ -174,46 +174,30 @@ public final class Runner {
     // ------------------------------------------------------------ API catalog
 
     /*
-     * stubs.txt from the API catalog: one line per class,
+     * API catalog lines (stubs.txt format), one per class:
      *   Name \t pluginIndex \t attr:type[:w]|... \t method:returnType|... \t ctorParam,...
-     * Read lazily, the first time a script needs a class the mocks do not cover,
-     * and kept for the life of the JVM (the file name carries a content hash).
+     * The page sends each class once per engine (only the classes a script can reach)
+     * and they are kept here for the life of the JVM.
      */
-    private static String catalogLoadedPath;
-    private static java.util.HashMap<String, String> catalog;
+    private static final java.util.HashMap<String, String> catalog = new java.util.HashMap<String, String>();
 
-    static synchronized String typeInfo(String path, String name) {
-        if (path == null || path.length() == 0) return null;
-        if (!path.equals(catalogLoadedPath)) {
-            catalogLoadedPath = path;
-            catalog = new java.util.HashMap<String, String>();
-            java.io.Reader in = null;
-            try {
-                in = new java.io.InputStreamReader(new java.io.FileInputStream(path), "UTF-8");
-                StringBuilder sb = new StringBuilder(1 << 21);
-                char[] buf = new char[1 << 16];
-                int n;
-                while ((n = in.read(buf)) > 0) sb.append(buf, 0, n);
-                int pos = 0, len = sb.length();
-                while (pos < len) {
-                    int nl = sb.indexOf("\n", pos);
-                    if (nl < 0) nl = len;
-                    int tab = sb.indexOf("\t", pos);
-                    if (tab > pos && tab < nl) catalog.put(sb.substring(pos, tab), sb.substring(tab + 1, nl));
-                    pos = nl + 1;
-                }
-                trace("catalog loaded: " + catalog.size() + " classes");
-            } catch (Exception e) {
-                trace("catalog not loaded: " + e);
-            } finally {
-                if (in != null) try { in.close(); } catch (Exception e) { /* ignore */ }
-            }
+    static synchronized void addCatalogLines(String text) {
+        int pos = 0, len = text.length();
+        while (pos < len) {
+            int nl = text.indexOf('\n', pos);
+            if (nl < 0) nl = len;
+            int tab = text.indexOf('\t', pos);
+            if (tab > pos && tab < nl) catalog.put(text.substring(pos, tab), text.substring(tab + 1, nl));
+            pos = nl + 1;
         }
+    }
+
+    static synchronized String typeInfo(String name) {
         return catalog.get(name);
     }
 
     static ScriptableObject installHost(Context cx, Scriptable global, final LogSink sink, final long deadline,
-                                        String[] flags, final String catalogPath, String[] stubGlobals) {
+                                        String[] flags, String[] stubGlobals) {
         ScriptableObject host = (ScriptableObject) cx.newObject(global);
 
         // Profile switches the mocks read, e.g. flags.console, flags.commandDisabled.
@@ -256,7 +240,7 @@ public final class Runner {
         // API catalog lookups for the generated stubs (null when the class is unknown).
         host.defineProperty("typeInfo", new HostFn() {
             Object invoke(Object[] a) {
-                String info = typeInfo(catalogPath, str(a, 0));
+                String info = typeInfo(str(a, 0));
                 return info == null ? null : info;
             }
         }, ScriptableObject.DONTENUM);
@@ -318,7 +302,8 @@ public final class Runner {
         Json.Arr inputs = req.arr("inputs");              // [{name, value(js expr), type}]
         String[] outputs = req.strArray("outputs");
         String[] flags = req.strArray("flags");
-        String catalogPath = req.str("catalogPath", "");
+        String catalogLines = req.str("catalogLines", "");
+        if (catalogLines.length() > 0) addCatalogLines(catalogLines);
         String[] stubGlobals = req.strArray("stubGlobals");
         boolean wrapCollections = false;
         for (int i = 0; i < flags.length; i++) if ("wrapJavaCollections".equals(flags[i])) wrapCollections = true;
@@ -347,7 +332,7 @@ public final class Runner {
             // come back as JavaScript primitives, as they do in Orchestrator.
             cx.getWrapFactory().setJavaPrimitiveWrap(false);
             ScriptableObject global = cx.initStandardObjects();
-            installHost(cx, global, sink, deadline, flags, catalogPath, stubGlobals);
+            installHost(cx, global, sink, deadline, flags, stubGlobals);
 
             for (int i = 0; i < removeGlobals.length; i++) {
                 global.delete(removeGlobals[i]);
