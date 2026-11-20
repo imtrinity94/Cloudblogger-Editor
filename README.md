@@ -23,6 +23,22 @@ Earlier versions of this project emulated vRO with the browser's own JavaScript 
 - **Serialization rules are flagged.** Returning an XML object or a function gets a note, because Orchestrator can't pass those between workflow elements.
 - **vCenter plug-in array conversion is reproduced.** Assigning `[]` to `spec.deviceChange` and then writing `spec.deviceChange[0]` is silently lost, while building the array first works. See [the post](https://cloudblogger.co.in/2022/04/03/javascript-to-java-conversion-limitation-in-vro/).
 
+## API catalog, explorer and autocomplete
+
+The editor carries the scripting API of the core plug-in and 12 plug-ins from [modernvroapi.in](https://modernvroapi.in): **6,260 classes, 6,252 methods and 38,163 attributes** (vCenter, vAPI, REST, SQL, SSH, PowerShell, Active Directory, Aria Automation, VCF Automation, Infoblox, XML, Mail; AWS, F5 and Avi are not included yet).
+
+- **API Explorer** (left, next to Scripts): plug-in → class tree, search across classes and members, and an **API** tab with constructors, attributes and methods, type links and *Insert* into the editor. Right-click a class name in the editor for *Open in API Explorer*.
+- **Autocomplete, hover docs and signature help** come from generated TypeScript declarations. Small plug-ins load with the editor; vCenter, vAPI and Aria Automation load the first time a script names one of their classes.
+- **Runtime stubs**: any catalog class without a hand-written mock (below) still works in a script. Constructors and static calls (`ActiveDirectory.search(...)`, `new SSHSession(...)`) work, attributes return a typed default, and every method call writes a `[stub] Class.method() → Type` debug line and returns a placeholder: `""`, `0`, `false`, `[]`, `null` for Any, a new `Properties`/`Date`, a finished `VcTask`, or a stub of the documented return type, so chains like `XMLManager.fromString(x).getDocumentElement()` keep going. Mock vCenter objects and hand-written classes keep their behaviour and only gain the members they lack. Stubs let a script run end to end; they do not produce real results.
+
+The catalog is generated, not hand-edited:
+
+```sh
+npm run build:catalog -- ../modern-vroapi   # reads vro-doc-site/src/data/plugins/*.json
+```
+
+It writes `public/catalog/catalog.json` and a content-hashed `public/catalog/v-<hash>/` with per-plug-in details, `.d.ts` files and `stubs.txt` (the compact form the engine reads, only for classes a script touches).
+
 ## Mocked vRO APIs
 
 Implemented in [`public/engine/vro-mocks.js`](public/engine/vro-mocks.js), which is plain ES5 loaded into Rhino before your script:
@@ -61,7 +77,7 @@ Import the repo. `vercel.json` sets `public/` as the output directory with no bu
 
 ```sh
 npm run build:engine   # needs git + JDK 11+; clones Rhino tags, compiles 1.7.x to Java 8 and 1.9.1 to Java 11
-npm test               # 275 tests on a desktop JVM (same jars as the browser), incl. real 9.1.1 outputs
+npm test               # 317 tests on a desktop JVM (same jars as the browser), incl. real 9.1.1 outputs
 npm run matrix         # regenerates docs/feature-matrix.md
 ```
 
@@ -72,7 +88,9 @@ engine/java/vroconsole/Runner.java     compiled once per Rhino version (shutter,
 engine/launcher/vroconsole/Launcher.java  loads each engine in its own class loader
 public/engines/v-<hash>/*.jar          rhino-1.7R4, rhino-1.7.15, rhino-1.9.1, runner-8x/9x/91x, launcher
 public/engine/                         mocks, default inventory, version profiles, request builder
-public/index.html, app.js, styles.css  the console UI (Monaco editor)
+engine/catalog/build-catalog.js        builds public/catalog/ from the modern-vroapi data
+public/catalog/                        API catalog: index, per-plug-in details, .d.ts, stubs.txt
+public/index.html, app.js, api.js      the console UI (Monaco editor, API Explorer)
 ```
 
 Version settings (language level, Rhino feature flags) live in [`public/engine/profiles.json`](public/engine/profiles.json). Add a profile there plus a `runner-<id>.jar` to support another Orchestrator release (e.g. 9.2).
@@ -83,7 +101,7 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## Limits
 
-- Plugins other than the mocked vCenter/REST surface aren't available. Polyglot (Python, Node.js, PowerShell) actions aren't supported.
+- Only the vCenter, REST and core classes listed above are simulated with data; other plug-in classes are stubs that return placeholders. Polyglot (Python, Node.js, PowerShell) actions aren't supported.
 - Mocked objects cover common properties and methods, not the full vSphere API.
 - The first visit downloads the CheerpJ Java 11 runtime and about 4 MB of engine jars, which takes around 30-40 seconds. The first run on each engine takes a few seconds while it warms up; later runs take under a second.
 
@@ -92,5 +110,6 @@ See [CHANGELOG.md](CHANGELOG.md).
 - This project: MIT.
 - Rhino: MPL 2.0. The jars are compiled unmodified from [mozilla/rhino](https://github.com/mozilla/rhino) tags `Rhino1_7R4_RELEASE`, `Rhino1_7_15_Release` and `Rhino1_9_1_Release` (core and E4X modules).
 - Parts of the mock library are adapted from Stefan Schnell's emulator, MIT: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- The API catalog is generated from [modern-vroapi](https://github.com/imtrinity94/modern-vroapi) data, MIT.
 - CheerpJ is loaded from Leaning Technologies' CDN under its [Community licence](https://cheerpj.com/licensing/) (free for personal and open-source projects).
 - Not affiliated with Broadcom or VMware.

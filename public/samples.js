@@ -229,6 +229,28 @@ window.VRO_SAMPLES = [
         ]
     },
     {
+        group: "Plug-ins (API catalog)",
+        items: [
+            {
+                id: "pl-ssh",
+                title: "SSH command (stubbed plug-in)",
+                code: "// SSH plug-in from the API catalog. Plug-in classes without a hand-written mock are\n// stubs: each call writes \"[stub] Class.method() -> Type\" (tick \"debug lines\") and\n// returns a placeholder, so the script runs end to end without a real host.\nvar session = new SSHSession(hostName, \"root\");\nsession.connectWithPassword(password);\nsession.executeCommand(\"uname -a\", true);\nvar exitCode = session.exitCode;\nvar output = session.output;\nsession.disconnect();\n\nSystem.log(\"Ran on \" + session.host + \": exit code \" + exitCode + \", output '\" + output + \"'\");\nif (exitCode !== 0) throw new Error(\"Command failed on \" + hostName + \": \" + session.error);\nreturn output;\n",
+                inputs: [
+                    { name: "hostName", value: "\"linux-01.vmw.lab\"" },
+                    { name: "password", value: "\"not-a-real-password\"" }
+                ]
+            },
+            {
+                id: "pl-ad-xml-mail",
+                title: "AD lookup + XML + mail",
+                code: "// Active Directory lookup, XML report and mail, all from the API catalog.\n// Open a class in the API Explorer (left) or right-click a class name here.\nvar users = ActiveDirectory.search(\"User\", userName);\nSystem.log(\"Users matching '\" + userName + \"': \" + users.length);\n\nvar doc = XMLManager.newDocument();\nvar root = doc.createElement(\"report\");\nroot.setAttribute(\"query\", userName);\nroot.setAttribute(\"matches\", String(users.length));\ndoc.appendChild(root);\nvar xml = XMLManager.getDocumentContent(doc);\n\nvar message = new EmailMessage();\nmessage.smtpHost = \"smtp.vmw.lab\";\nmessage.toAddress = \"ops@vmw.lab\";\nmessage.subject = \"AD report for \" + userName;\nmessage.addMimePart(xml, \"text/xml\");\nmessage.sendMessage();\n\nreturn message.subject;\n",
+                inputs: [
+                    { name: "userName", value: "\"jdoe\"" }
+                ]
+            }
+        ]
+    },
+    {
         group: "Language & engine",
         items: [
             {

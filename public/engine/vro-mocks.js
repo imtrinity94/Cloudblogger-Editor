@@ -797,6 +797,156 @@
         };
     });
 
+    // ------------------------------------------------- API catalog stubs
+    /*
+     * Every class of the API catalog (modernvroapi.in data) that the hand-written
+     * mocks above and below do not cover becomes a stub: constructors and static
+     * calls work, attributes return a typed default, and each method call writes a
+     * "[stub] Class.method() -> Type" debug line and returns a placeholder:
+     *   string "" / number 0 / boolean false / arrays [] / Any null / Properties and
+     *   Date fresh objects / VcTask a finished task / any other class a stub of it.
+     * The engine gives the class data through __vroHost.typeInfo(name), so only the
+     * classes a script actually touches are built.
+     */
+    var stubNames = (host.stubGlobals || []).slice();
+    var stubTypeCache = {};
+    var stubProtoCache = {};
+    var stubCalls = { n: 0, max: 200 };
+
+    function stubTypeInfo(name) {
+        if (Object.prototype.hasOwnProperty.call(stubTypeCache, name)) return stubTypeCache[name];
+        var line = host.typeInfo ? host.typeInfo(name) : null;
+        var info = null;
+        if (line !== null && line !== undefined) {
+            var f = String(line).split("\t");
+            info = { name: name, attrs: [], methods: [], ctor: f[3] ? f[3].split(",") : [], attrSet: {} };
+            if (f[1]) f[1].split("|").forEach(function (x) {
+                var p = x.split(":");
+                info.attrs.push({ name: p[0], type: p[1], w: p[2] === "w" });
+                info.attrSet[p[0]] = 1;
+            });
+            if (f[2]) f[2].split("|").forEach(function (x) {
+                var p = x.split(":");
+                info.methods.push({ name: p[0], type: p[1] });
+            });
+        }
+        stubTypeCache[name] = info;
+        return info;
+    }
+
+    function stubTypeLabel(t) {
+        var arr = "";
+        while (/\[\]$/.test(t)) { arr += "[]"; t = t.slice(0, -2); }
+        var named = { s: "string", n: "number", b: "boolean", a: "Any", p: "Properties", d: "Date", v: "void" };
+        return (named[t] || t) + arr;
+    }
+
+    function stubNote(text) {
+        stubCalls.n++;
+        if (stubCalls.n <= stubCalls.max) host.log("debug", "[stub] " + text);
+        else if (stubCalls.n === stubCalls.max + 1) host.log("debug", "[stub] further stub calls are not logged");
+    }
+
+    function stubValue(t, method, self) {
+        if (!t || t === "v") return undefined;
+        if (/\[\]$/.test(t)) return [];
+        switch (t) {
+            case "s": return "";
+            case "n": return 0;
+            case "b": return false;
+            case "a": return null;
+            case "p": return new Properties();
+            case "d": return new Date(host.now());
+        }
+        if (t === "VcTask" && method) return new VcTask(method, self, null);
+        return stubInstance(t);
+    }
+
+    function stubSkip(name) {
+        return name === "constructor" || name === "__proto__" || name in Object.prototype;
+    }
+
+    function stubAttr(target, a) {
+        var key = a.name;
+        function own(obj, v) {
+            try { Object.defineProperty(obj, key, { value: v, writable: true, configurable: true, enumerable: true }); } catch (e) { /* frozen */ }
+        }
+        try {
+            Object.defineProperty(target, key, {
+                configurable: true, enumerable: false,
+                // The value is made on first read and then kept on the object.
+                get: function () { var v = stubValue(a.type); own(this, v); return v; },
+                set: function (v) { own(this, v); }
+            });
+        } catch (e) { /* not configurable */ }
+    }
+
+    function stubMethod(type, m) {
+        return function () {
+            stubNote(type + "." + m.name + "()" + (m.type === "v" ? "" : " → " + stubTypeLabel(m.type)));
+            return stubValue(m.type, m.name, this);
+        };
+    }
+
+    function stubFill(target, info, onlyMissing, methodsOnly) {
+        if (!methodsOnly) {
+            info.attrs.forEach(function (a) {
+                if (stubSkip(a.name) || (onlyMissing && a.name in target)) return;
+                stubAttr(target, a);
+            });
+        }
+        info.methods.forEach(function (m) {
+            if (stubSkip(m.name) || info.attrSet[m.name] || (onlyMissing && m.name in target)) return;
+            try {
+                Object.defineProperty(target, m.name, { value: stubMethod(info.name, m), writable: true, configurable: true, enumerable: false });
+            } catch (e) { /* not configurable */ }
+        });
+    }
+
+    function stubProto(type) {
+        if (Object.prototype.hasOwnProperty.call(stubProtoCache, type)) return stubProtoCache[type];
+        var info = stubTypeInfo(type);
+        var proto = null;
+        if (info) {
+            proto = {};
+            Object.defineProperty(proto, "__vroClass", { value: type });
+            Object.defineProperty(proto, "toString", { value: function () { return "[stub " + type + "]"; }, writable: true, configurable: true });
+            stubFill(proto, info, false, false);
+        }
+        stubProtoCache[type] = proto;
+        return proto;
+    }
+
+    function stubInstance(type) {
+        var proto = stubProto(type);
+        return proto ? Object.create(proto) : null;
+    }
+
+    function stubClass(type) {
+        var info = stubTypeInfo(type);
+        if (!info) return null;
+        var proto = stubProto(type);
+        var Ctor = function () {
+            var self = this instanceof Ctor ? this : Object.create(proto);
+            // Named constructor arguments are kept on the object (new SSHSession(host, user).host).
+            for (var i = 0; i < info.ctor.length && i < arguments.length; i++) {
+                var pn = info.ctor[i];
+                if (pn && !/^(arg|param)\d+$/.test(pn)) self[pn] = arguments[i];
+            }
+            return self;
+        };
+        Ctor.prototype = proto;
+        Object.defineProperty(proto, "constructor", { value: Ctor, writable: true, configurable: true });
+        Object.defineProperty(Ctor, "toString", { value: function () { return type; }, writable: true, configurable: true });
+        // Scripting objects such as ActiveDirectory or XMLManager are used through the class name.
+        stubFill(Ctor, info, true, false);
+        return Ctor;
+    }
+
+    // vCenter inventory objects get the full catalog behind the hand-written members
+    // when the script uses vCenter classes.
+    var vcStubs = stubNames.some(function (n) { return n.indexOf("Vc") === 0; });
+
     // ------------------------------------------------------- vCenter mocks
 
     var vcTypes = {};
@@ -829,7 +979,7 @@
     define("VcTask", VcTask);
 
     function vcObject(type, data, sdk) {
-        var o = {};
+        var o = (vcStubs && stubInstance("Vc" + type)) || {};
         Object.keys(data).forEach(function (k) { o[k] = data[k]; });
         Object.defineProperty(o, "vimType", { value: type, enumerable: false });
         Object.defineProperty(o, "__vroType", { value: "VC:" + type, enumerable: false });
@@ -1045,6 +1195,12 @@
         getAllDatacenters: allOf("Datacenter"),
         getAllDatastores: allOf("Datastore"),
         getAllNetworks: allOf("Network"),
+        get allVirtualMachines() { return allOf("VirtualMachine")(); },
+        get allHostSystems() { return allOf("HostSystem")(); },
+        get allClusterComputeResources() { return allOf("ClusterComputeResource")(); },
+        get allDatacenters() { return allOf("Datacenter")(); },
+        get allDatastores() { return allOf("Datastore")(); },
+        get allNetworks() { return allOf("Network")(); },
         toString: function () { return "VcPlugin"; }
     });
 
@@ -1215,6 +1371,25 @@
     });
 
     // -------------------------------------------------------------- Inspect
+
+    // Catalog classes the script names: hand-written mocks keep priority and only
+    // gain the members they lack; everything else becomes a generated stub.
+    stubNames.forEach(function (name) {
+        var existing = Object.prototype.hasOwnProperty.call(global, name) ? global[name] : undefined;
+        if (existing === undefined) {
+            var C = stubClass(name);
+            if (C) define(name, C);
+            return;
+        }
+        if (name === "Properties" || existing === null) return;
+        var info = stubTypeInfo(name);
+        if (!info) return;
+        if (typeof existing === "function") {
+            if (existing.prototype) stubFill(existing.prototype, info, true, true);
+        } else if (typeof existing === "object") {
+            stubFill(existing, info, true, false);
+        }
+    });
 
     // Formats a value for the Result/Outputs panes (not used by System.log).
     define("__vroInspect", function inspect(v, depth) {

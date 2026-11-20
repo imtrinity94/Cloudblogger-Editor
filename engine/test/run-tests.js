@@ -14,7 +14,9 @@ const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "../..");
 const PUB = path.join(ROOT, "public");
-const { buildRequest } = require(path.join(PUB, "engine/request.js"));
+const { buildRequest, referencedClasses } = require(path.join(PUB, "engine/request.js"));
+const catalog = JSON.parse(fs.readFileSync(path.join(PUB, "catalog/catalog.json"), "utf8"));
+const catalogPath = path.join(PUB, "catalog", catalog.dir, "stubs.txt");
 const mocks = fs.readFileSync(path.join(PUB, "engine/vro-mocks.js"), "utf8");
 const fixture = JSON.parse(fs.readFileSync(path.join(PUB, "engine/fixture.default.json"), "utf8"));
 const profiles = JSON.parse(fs.readFileSync(path.join(PUB, "engine/profiles.json"), "utf8"));
@@ -31,9 +33,11 @@ function runBatch(jobs) {
 }
 
 function job(engine, code, extra) {
+    const texts = [code].concat(((extra && extra.inputs) || []).map(i => i.value));
+    const stubGlobals = referencedClasses(texts, catalog.classes, catalog.builtins);
     return {
         engine,
-        request: buildRequest(Object.assign({ code, mocks, fixture, profile: profiles[engine], timeoutMs: 5000 }, extra || {}))
+        request: buildRequest(Object.assign({ code, mocks, fixture, profile: profiles[engine], timeoutMs: 5000, catalogPath, stubGlobals }, extra || {}))
     };
 }
 
@@ -185,6 +189,33 @@ test("9.1.1: reading outside allowed folders is denied", ["91x"], "var r = new F
 test("9.1.1: Command.execute is disabled", ["91x"], "new Command('echo hi').execute(true);",
     err(/^InternalError: This method is disabled for security reasons\. 'Command' is deprecated/));
 test("8.x/9.0: Command is a no-op mock", ["8x", "9x"], "var c = new Command(['ls', '-l']); return c.execute(true) + '|' + c.command;", ok("0|ls -l"));
+
+// ------------------------------------------------------------- API catalog stubs
+
+const stubLog = (re) => (r) => r.ok && r.logs.some(l => l.level === "debug" && re.test(l.msg)) ? null : "no stub line " + re + " in " + JSON.stringify(r.logs);
+test("stub: static scripting object", both, "var e = ActiveDirectory.searchExactMatch('User', 'bob'); return typeof ActiveDirectory + '|' + Array.isArray(e);", ok("function|true"));
+test("stub: call is logged", both, "XMLManager.fromString('<a/>');", stubLog(/^\[stub\] XMLManager\.fromString\(\) \u2192 XMLDocument$/));
+test("stub: typed placeholder chain", both, "var d = XMLManager.fromString('<a/>'); return System.getObjectClassName(d) + '|' + System.getObjectClassName(d.getDocumentElement());", ok("XMLDocument|XMLElement"));
+test("stub: constructor keeps matching attributes", both, "var s = new SSHSession('host01', 'root'); return s.host + '|' + s.username + '|' + s.exitCode;",
+    r => r.ok && /^host01\|root\|/.test(r.result) ? null : JSON.stringify(r.error || r.result));
+test("stub: primitive defaults", both, "var c = new SSHCommand(); return [typeof c.output, typeof c.exitCode].join();",
+    r => r.ok ? null : JSON.stringify(r.error));
+test("stub: writable attribute keeps value", both, "var m = new EmailMessage(); m.subject = 'hi'; return m.subject;", ok("hi"));
+test("stub: unknown class stays undefined", both, "return typeof NoSuchClassAnywhere;", ok("undefined"));
+test("stub: hand-written mocks keep priority", both, "return typeof Properties.prototype.keys + '|' + new RESTHost('x').name;", ok("function|x"));
+test("stub: hand-written VcPlugin gains catalog members", both, "return VcPlugin.getAllResourcePools().length + '|' + VcPlugin.allVirtualMachines.length;", ok("0|6"));
+test("stub: mock VM keeps fixture data and gains catalog methods", both,
+    "var vm = VcPlugin.getAllVirtualMachines()[0]; var t = typeof vm.refreshStorageInfo === 'function' ? 'fn' : 'none'; var task = vm.reconfigVM_Task(new VcVirtualMachineConfigSpec());\n" +
+    "var t2 = vm.upgradeVM_Task('vmx-21'); System.getModule('com.vmware.library.vc.basic').vim3WaitTaskEnd(t2, true, 1);\n" +
+    "return vm.name + '|' + t + '|' + t2.info.state.value + '|' + System.getObjectClassName(vm);", ok("web-01|fn|success|VcVirtualMachine"));
+test("stub: SQL flow", both, "var dbs = SQLDatabaseManager.getDatabases(); var db = new SQLDatabase(); return Array.isArray(dbs) + '|' + Array.isArray(db.readCustomQuery('select 1'));", ok("true|true"));
+test("stub: REST plug-in classes the mocks lack", both, "var o = new RESTOperation(); return System.getObjectClassName(o);", ok("RESTOperation"));
+
+global.window = global.window || {};
+require(path.join(PUB, "samples.js"));
+window.VRO_SAMPLES.forEach(g => g.items.filter(x => /^pl-/.test(x.id)).forEach(x => {
+    test("sample " + x.id + " runs", both, x.code, r => r.ok ? null : JSON.stringify(r.error), { inputs: x.inputs });
+}));
 
 // ------------------------------------------------------------- feature matrix
 

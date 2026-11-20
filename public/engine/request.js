@@ -24,11 +24,37 @@
             allowJava: opts.allowJava || [],
             inputs: opts.inputs || [],
             outputs: opts.outputs || [],
-            trace: opts.trace ? "true" : "false"
+            trace: opts.trace ? "true" : "false",
+            // API catalog: the engine reads class data from this file on demand.
+            catalogPath: opts.catalogPath || "",
+            stubGlobals: opts.stubGlobals || []
         });
     }
 
-    var api = { buildRequest: buildRequest };
+    /*
+     * Catalog classes named in a script (and its input expressions). Only these become
+     * global stubs for the run; classes reached through return values are built lazily.
+     */
+    function referencedClasses(texts, classIndex, builtins) {
+        var seen = {}, out = [];
+        var skip = {};
+        (builtins || []).forEach(function (b) { skip[b] = 1; });
+        (Array.isArray(texts) ? texts : [texts]).forEach(function (t) {
+            var re = /[A-Za-z_$][\w$]*/g, m;
+            t = String(t || "");
+            while ((m = re.exec(t))) {
+                var id = m[0];
+                if (seen[id] || skip[id]) continue;
+                if (Object.prototype.hasOwnProperty.call(classIndex, id)) {
+                    seen[id] = 1;
+                    out.push(id);
+                }
+            }
+        });
+        return out;
+    }
+
+    var api = { buildRequest: buildRequest, referencedClasses: referencedClasses };
     if (typeof module !== "undefined" && module.exports) module.exports = api;
     else root.VroRequest = api;
 })(this);

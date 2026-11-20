@@ -30,7 +30,19 @@
     </div>
 
     <div class="cbe-main">
-        <nav class="cbe-nav" id="sidebar" aria-label="Samples"></nav>
+        <nav class="cbe-nav" id="nav" aria-label="Scripts and API">
+            <div class="cbe-nav-tabs" role="tablist">
+                <button role="tab" data-mode="scripts" aria-selected="true">Scripts</button>
+                <button role="tab" data-mode="api" aria-selected="false">API Explorer</button>
+            </div>
+            <div id="sidebar"></div>
+            <div id="apiExplorer" hidden>
+                <div class="api-search"><input id="apiSearch" type="search" placeholder="Search classes and members" aria-label="Search the API" autocomplete="off" spellcheck="false"></div>
+                <div class="api-source" id="apiSource"></div>
+                <div id="apiTree"></div>
+                <div id="apiResults" hidden></div>
+            </div>
+        </nav>
 
         <div class="cbe-editor">
             <div class="cbe-toolbar">
@@ -64,6 +76,7 @@
                     <button class="cbe-tab small active" role="tab" data-tab="output">Output</button>
                     <button class="cbe-tab small" role="tab" data-tab="io">Inputs</button>
                     <button class="cbe-tab small" role="tab" data-tab="mocks">Mocks</button>
+                    <button class="cbe-tab small" role="tab" data-tab="api">API</button>
                     <button class="cbe-tab small" role="tab" data-tab="about">About</button>
                     <span class="cbe-spacer"></span>
                     <label><input type="checkbox" id="debugToggle" checked> debug lines</label>
@@ -95,6 +108,12 @@
                     </div>
                 </div>
 
+                <div class="cbe-tab-body" data-tab="api">
+                    <div class="api-detail" id="apiDetail">
+                        <p class="api-desc">Pick a class in the <strong>API Explorer</strong> on the left, or right-click a class name in the editor and choose <em>Open in API Explorer</em>.</p>
+                    </div>
+                </div>
+
                 <div class="cbe-tab-body" data-tab="about">
                     <div class="about">
                         <p><strong>This is not an emulator.</strong> Your script runs on the actual Mozilla Rhino builds that Orchestrator ships:
@@ -111,6 +130,12 @@
                                 All 58 language probes give the same result as the server.</li>
                             <li>Error messages and line numbers come straight from Rhino, labelled like Orchestrator does.</li>
                         </ul>
+                        <p><strong>API catalog:</strong> every class, attribute and method of the core API and 12 plug-ins (vCenter, vAPI, REST, SQL, SSH, PowerShell,
+                            Active Directory, Aria Automation, VCF Automation, Infoblox, XML, Mail) from <a href="https://modernvroapi.in" target="_blank" rel="noopener">modernvroapi.in</a>
+                            powers the API Explorer, autocomplete and hover docs. At run time, any catalog class that is not hand-mocked is a <em>stub</em>: constructors and
+                            static calls work, attributes return a typed default, and each method call writes a <code>[stub] Class.method() → Type</code> debug line and
+                            returns a placeholder (<code>""</code>, <code>0</code>, <code>false</code>, <code>[]</code>, <code>null</code> for Any, a finished task for
+                            <code>VcTask</code>, or a stub of the documented return type). Stubs let a script run end to end; they do not reproduce real results.</p>
                         <p><strong>What is mocked:</strong> <code>System</code>, <code>Server</code>, <code>VcPlugin</code> and VC objects, <code>RESTHost</code>/<code>RESTHostManager</code>,
                             <code>Properties</code>, <code>LockingSystem</code>, <code>URL</code>, <code>File</code>/<code>FileReader</code>/<code>FileWriter</code> (in-memory),
                             <code>ZipWriter</code>, <code>ByteBuffer</code>, <code>MimeAttachment</code>, <code>Command</code> and mocked actions via <code>System.getModule</code>.
@@ -131,6 +156,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.js"></script>
     <script src="engine/request.js"></script>
     <script src="samples.js"></script>
+    <script src="api.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

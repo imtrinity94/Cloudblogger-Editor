@@ -299,13 +299,17 @@
     }
 
     function buildRequest(engine) {
+        var code = editor.getValue();
+        var inputs = state.inputs.filter(function (i) { return i.name; });
         return window.VroRequest.buildRequest({
-            code: editor.getValue(),
+            code: code,
+            catalogPath: window.CbeApi.stubsPath(),
+            stubGlobals: window.CbeApi.referencedClasses([code].concat(inputs.map(function (i) { return i.value; }))),
             mocks: mocksSource,
             fixture: fixtureObject(),
             profile: profiles[engine],
             mode: "action",
-            inputs: state.inputs.filter(function (i) { return i.name; }),
+            inputs: inputs,
             timeoutMs: 15000
         });
     }
@@ -574,37 +578,10 @@
 
     // --------------------------------------------------------------- monaco
 
+    // Everything else comes from the API catalog (api.js loads it per plug-in).
     var VRO_DTS = [
-        "declare var System: { log(m: any): void; warn(m: any): void; error(m: any): void; debug(m: any): void;",
-        "  sleep(ms: number): void; getCurrentTime(): number; nextUUID(): string; formatDate(d: Date, pattern?: string): string;",
-        "  getModule(name: string): any; getContext(): { getParameter(k: string): any; setParameter(k: string, v: any): void };",
-        "  getTempDirectory(): string; };",
-        "declare var Server: { log(m: any): void; warn(m: any): void; error(m: any): void;",
-        "  getConfigurationElementCategoryWithPath(path: string): { name: string; path: string; configurationElements: ConfigurationElement[] } | null;",
-        "  createConfigurationElement(categoryPath: string, name: string): ConfigurationElement;",
-        "  getResourceElementCategoryWithPath(path: string): { name: string; resourceElements: ResourceElement[] } | null;",
-        "  findForType(type: string, id: string): any; findAllForType(type: string): any[]; };",
-        "interface ConfigurationElement { name: string; path: string; attributes: { name: string; value: any }[];",
-        "  getAttributeWithKey(k: string): { name: string; value: any } | null; setAttributeWithKey(k: string, v: any): void; }",
-        "interface ResourceElement { name: string; mimeType: string; getContentAsMimeAttachment(): MimeAttachment; }",
-        "declare class MimeAttachment { constructor(name?: string, content?: string, mimeType?: string); name: string; content: string; mimeType: string; }",
-        "declare class Properties { put(k: string, v: any): void; get(k: string): any; remove(k: string): any; keys(): string[]; values(): any[]; containsKey(k: string): boolean; size(): number; }",
-        "interface VcTask { info: { state: { value: string }; result: any; error: any; name: string }; }",
-        "interface VcVirtualMachine { name: string; id: string; runtime: { powerState: { value: string } };",
-        "  config: { hardware: { numCPU: number; memoryMB: number }; guestFullName: string; annotation: string; template: boolean };",
-        "  guest: { ipAddress: string; hostName: string; toolsRunningStatus: string };",
-        "  powerOnVM_Task(host?: any): VcTask; powerOffVM_Task(): VcTask; suspendVM_Task(): VcTask; resetVM_Task(): VcTask;",
-        "  shutdownGuest(): void; rebootGuest(): void; reconfigVM_Task(spec: VcVirtualMachineConfigSpec): VcTask;",
-        "  rename_Task(name: string): VcTask; destroy_Task(): VcTask; createSnapshot_Task(name: string, desc?: string, memory?: boolean, quiesce?: boolean): VcTask; }",
-        "declare class VcVirtualMachineConfigSpec { numCPUs: number; memoryMB: number; annotation: string; }",
-        "declare var VcPlugin: { allSdkConnections: any[]; getAllVirtualMachines(props?: string[] | null, xpath?: string): VcVirtualMachine[];",
-        "  getAllHostSystems(): any[]; getAllClusterComputeResources(): any[]; getAllDatacenters(): any[]; getAllDatastores(): any[]; getAllNetworks(): any[]; };",
-        "declare class RESTHost { constructor(name: string); name: string; url: string; createRequest(method: string, url: string, content?: string | null): RESTRequest; }",
-        "interface RESTRequest { contentType: string; setHeader(k: string, v: string): void; execute(): RESTResponse; }",
-        "interface RESTResponse { statusCode: number; contentAsString: string; getAllHeaders(): Properties; }",
-        "declare var RESTHostManager: { createHost(name: string): RESTHost; createTransientHostFrom(h: RESTHost): RESTHost; getHosts(): string[]; getHost(id: string): RESTHost; };",
-        "declare var LockingSystem: { lock(id: string, owner: string): boolean; lockAndWait(id: string, owner: string): void; unlock(id: string, owner: string): void; unlockAll(): void; retrieveAll(): string[]; };",
-        "declare var java: any;"
+        "declare var java: any;",
+        "declare var Packages: any;"
     ].join("\n");
 
     function initMonaco() {
@@ -616,7 +593,9 @@
                     noSemanticValidation: true, noSyntaxValidation: true
                 });
                 monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
-                    target: monaco.languages.typescript.ScriptTarget.ES2017, allowNonTsExtensions: true, noLib: false
+                    target: monaco.languages.typescript.ScriptTarget.ES2017, allowNonTsExtensions: true, noLib: false,
+                    // Rhino has no DOM; leaving it out also keeps File, URL and Event to the Orchestrator classes.
+                    lib: ["es2017"]
                 });
                 monaco.languages.typescript.javascriptDefaults.addExtraLib(VRO_DTS, "vro.d.ts");
 
@@ -650,6 +629,7 @@
                     state.code = editor.getValue();
                     save();
                 });
+                if (window.CbeApi.ready()) window.CbeApi.attachMonaco(monaco, editor);
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function () { run([state.version]); });
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter, function () { run(ENGINES); });
                 // F11-style toggle that works while typing in the editor.
@@ -727,7 +707,11 @@
         fetchText("engine/vro-mocks.js"),
         fetchText("engine/profiles.json"),
         fetchText("engine/fixture.default.json"),
-        fetchText("engine/engines.json")
+        fetchText("engine/engines.json"),
+        // The API catalog is optional: without it the editor still runs scripts.
+        window.CbeApi.load({ showApiTab: function () { showTab("api"); } }).catch(function (e) {
+            console.warn("API catalog not loaded:", e);
+        })
     ]).then(function (texts) {
         engineDir = JSON.parse(texts[3]).dir;
         mocksSource = texts[0];
